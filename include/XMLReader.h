@@ -10,7 +10,7 @@
 class CXMLReader{
     
 // change back: public to private
-public: 
+private: 
     std::istream &XInput;
     XML_Parser XParser;
     std::vector<SXMLEntity> DInput;

@@ -1,7 +1,7 @@
 #makefile
 CXX = g++
 CXXFLAGS = -std=c++14 $(INCLUDE) 
-TESTFLAGS = -lgtest -lgtest_main -lpthread lib/libcsv.a
+TESTFLAGS = -lgtest -lgtest_main -lpthread lib/libcsv.a -lexpat
 
 LIBCSVDIR = libcsv-3.0.3
 LIBDIR = ./lib
@@ -13,7 +13,8 @@ INCLUDEDIR = ./include
 INCLUDE = -I $(INCLUDEDIR)
 CURDIR = $(shell pwd)
 
-all: directories bin/findroute test $(LIBDIR)/$(LIBCSVNAME) 
+all: directories test $(LIBDIR)/$(LIBCSVNAME) 
+#bin/findroute
 
 test: testbin/testrouter
 	./testbin/testrouter
@@ -55,8 +56,8 @@ $(LIBDIR)/ $(LIBCSVNAME): $(LIBCSVDIR)/libcsv.la
 
 
 # tests
-testbin/testrouter: $(OBJDIR)/CSVReader.o $(OBJDIR)/CSVWriter.o $(OBJDIR)/MapRouter.o $(OBJDIR)/testrouter.o $(INCLUDEDIR)/StringUtils.h 
-	$(CXX) $(CXXFLAGS) $(OBJDIR)/CSVReader.o $(OBJDIR)/CSVWriter.o  $(OBJDIR)/MapRouter.o $(OBJDIR)/testrouter.o $(OBJDIR)/StringUtils.o -o testbin/testrouter $(TESTFLAGS) 
+testbin/testrouter: $(OBJDIR)/CSVReader.o $(OBJDIR)/CSVWriter.o $(OBJDIR)/XMLReader.o  $(OBJDIR)/MapRouter.o $(OBJDIR)/testrouter.o $(INCLUDEDIR)/StringUtils.h 
+	$(CXX) $(CXXFLAGS) $(OBJDIR)/CSVReader.o $(OBJDIR)/CSVWriter.o $(OBJDIR)/XMLReader.o  $(OBJDIR)/MapRouter.o $(OBJDIR)/testrouter.o $(OBJDIR)/StringUtils.o -o testbin/testrouter $(TESTFLAGS) 
 
 $(OBJDIR)/testrouter.o: $(SRCDIR)/testrouter.cpp $(OBJDIR)/StringUtils.o
 	$(CXX) $(CXXFLAGS) -c $(SRCDIR)/testrouter.cpp -o $(OBJDIR)/testrouter.o

@@ -3,23 +3,54 @@
 
 #include <vector>
 #include <istream>
+#include <map>
 
-class Vertex{
-public:
-    int vertex_id;
-    std::vector<std::pair<std::vector <int>, int>> v_connections_weights;
-};
+// ways: if we cant find a node in a way, just ignore it.
+// important tags: speed / oneway
 
+// nodecount length of the vector
 class CMapRouter{
     public:
         using TNodeID = unsigned long;
         using TStopID = unsigned long;
-        using TLocation = std::pair<double, double>;
+        using TLocation = std::pair<double, double>; // longitude and latitude
         using TPathStep = std::pair<std::string, TNodeID>;
+        using TNodeIndex = int;
         static const TNodeID InvalidNodeID;
+    
     private:
-        std::vector<Vertex> map; // map: a list of vertex.
-        // std::map <int, Vertex> map;
+
+        
+        class Edge
+        {
+            public:
+            TNodeID nodeid; // it may be better to store it as an index
+            TNodeIndex nodeindex;
+            double distance; // harversine
+            int time;
+
+            double speed;
+            bool oneway;
+            bool busroute;
+
+            Edge &operator^=(const Edge &edge);
+        };
+
+        class Node
+        {
+            public:
+            TNodeID NodeID;
+            TLocation location;
+            std::vector<Edge> vedges;  
+            // TStopId stop;
+
+            // operator overloading
+            Node &operator=(const Node &node);
+        };
+
+        std::vector<Node> VNodes;
+        std::map<TNodeID, TNodeIndex> MNodeIds; //key=nodeid, value=index
+        std::vector<TNodeID> VSortedIds;
 
     public:
         CMapRouter();
@@ -30,6 +61,7 @@ class CMapRouter{
         
         bool LoadMapAndRoutes(std::istream &osm, std::istream &stops, std::istream &routes);
         size_t NodeCount() const;
+        // MapID.size();
         TNodeID GetSortedNodeIDByIndex(size_t index) const;
         TLocation GetSortedNodeLocationByIndex(size_t index) const;
         TLocation GetNodeLocationByID(TNodeID nodeid) const;
@@ -41,6 +73,8 @@ class CMapRouter{
         double FindShortestPath(TNodeID src, TNodeID dest, std::vector< TNodeID > &path);
         double FindFastestPath(TNodeID src, TNodeID dest, std::vector< TPathStep > &path);
         bool GetPathDescription(const std::vector< TPathStep > &path, std::vector< std::string > &desc) const;
+
+
 };
 
 #endif

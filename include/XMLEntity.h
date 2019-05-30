@@ -43,6 +43,20 @@ struct SXMLEntity{
         DAttributes.push_back(std::make_pair(name,value));
         return true;
     };
+
+void print_attributes()
+    {
+        std::string keys;
+        std::string values;
+        for (auto &Attribute : DAttributes)
+        {
+            keys += std::get<0>(Attribute);
+            values += std::get<1>(Attribute);
+        }
+
+        std::cout << "keys: " << keys << std::endl;
+        std::cout << "values: " << values << std::endl;
+    }
 };
    
 #endif
