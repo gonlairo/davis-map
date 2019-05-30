@@ -49,9 +49,13 @@ bool CXMLReader::ReadEntity(SXMLEntity &entity, bool skipcdata)
 
     if (!XQueue.empty())
     {
+        // bool x = XQueue.front().DType == SXMLEntity::EType::CharData;
+        //std::cout << x <<  std::endl;
         while(skipcdata == true && !XQueue.empty() && XQueue.front().DType == SXMLEntity::EType::CharData)
         {
+            //std::cout << "pop" << std::endl;
             XQueue.pop();
+
         }
 
         entity = XQueue.front();
