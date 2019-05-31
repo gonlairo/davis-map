@@ -32,8 +32,6 @@ class CMapRouter{
             double speed;
             bool oneway;
             bool busroute;
-
-            Edge &operator^=(const Edge &edge);
         };
 
         class Node
@@ -42,7 +40,7 @@ class CMapRouter{
             TNodeID NodeID;
             TLocation location;
             std::vector<Edge> vedges;  
-            // TStopId stop;
+            TStopID stop;
 
             // operator overloading
             Node &operator=(const Node &node);
@@ -51,6 +49,12 @@ class CMapRouter{
         std::vector<Node> VNodes;
         std::map<TNodeID, TNodeIndex> MNodeIds; //key=nodeid, value=index
         std::vector<TNodeID> VSortedIds;
+
+        // bus information
+        std::map <TStopID, TNodeID> MTStopNodeIds;
+        std::map <TNodeID, TStopID> MTNodeStopIds;
+        std::vector <std::pair<std::string, std::vector <TStopID>> > VBusRoutes;
+
 
     public:
         CMapRouter();

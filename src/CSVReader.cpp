@@ -63,9 +63,10 @@ void CCSVReader::CallBack1(void *str, size_t len, void *calldata)
 
 void CCSVReader::CallBack2(int ch, void *calldata)
 {
-    if((ch == '\n') || (ch =='\r'))
-    {
-        CCSVReader *Ptr = static_cast<CCSVReader *>(calldata);
-        Ptr->DataQueue.push(Ptr->RowInput);
-    }
+  CCSVReader *Ptr = static_cast<CCSVReader *>(calldata);
+  if ((ch == '\n') || (ch == '\r') || Ptr->CInput.eof())
+  {
+    Ptr->DataQueue.push(Ptr->RowInput);
+    Ptr->RowInput.clear();
+  }
 }

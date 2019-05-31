@@ -16,23 +16,13 @@ CMapRouter::CMapRouter(){
 CMapRouter::~CMapRouter(){
 }
 
-CMapRouter::Node &CMapRouter::Node::operator=(const Node &node)
-{
-  this->NodeID  = node.NodeID;
-  this->location = node.location;
-  this->vedges = node.vedges; //this->vedges.operator=(node.vedges);
-  return *this;
-}
-
-CMapRouter::Edge &CMapRouter::Edge::operator^=(const Edge &edge)
-{
-    this->oneway = edge.oneway;
-    this->distance = edge.distance;
-    this->busroute = edge.busroute;
-    this->speed = edge.speed;
-    this->time = edge.time;
-    return *this;
-}
+// CMapRouter::Node &CMapRouter::Node::operator=(const Node &node)
+// {
+//   this->NodeID  = node.NodeID;
+//   this->location = node.location;
+//   this->vedges = node.vedges; //this->vedges.operator=(node.vedges);
+//   return *this;
+// }
 
 double CMapRouter::HaversineDistance(double lat1, double lon1, double lat2, double lon2)
 {
@@ -63,13 +53,14 @@ double CMapRouter::CalculateBearing(double lat1, double lon1,double lat2, double
     return RadiansToDegrees(atan2(X,Y));
 }
 
-bool CMapRouter::LoadMapAndRoutes(std::istream &osm, std::istream &stops, std::istream &routes){
-    std::cout << __LINE__ << std::endl;
+bool CMapRouter::LoadMapAndRoutes(std::istream &osm, std::istream &stops, std::istream &routes)
+{
     CXMLReader OsmReader(osm);
-
     SXMLEntity OsmEnt;
+    
+
     OsmReader.ReadEntity(OsmEnt, true);
-    if ((OsmEnt.DType != SXMLEntity::EType::StartElement) or  (OsmEnt.DNameData != "osm"))
+    if ((OsmEnt.DType != SXMLEntity::EType::StartElement) or (OsmEnt.DNameData != "osm"))
     {
         return false;
     }
@@ -94,49 +85,32 @@ bool CMapRouter::LoadMapAndRoutes(std::istream &osm, std::istream &stops, std::i
             }
             else if (OsmEnt.DNameData == "way")
             {
-                std::cout << __LINE__ << std::endl;
                 std::vector<Node> TempStorage;
                 double speedlimit = 25;
                 bool oneway = true;
-                
-                OsmReader.ReadEntity(OsmEnt, true); // skipping way tag
-                OsmEnt.print_attributes();
-                OsmReader.ReadEntity(OsmEnt, true); // grabbing start location
-                OsmEnt.print_attributes();
-                OsmReader.ReadEntity(OsmEnt, true); // grabbing start location
-                OsmEnt.print_attributes();
-                OsmReader.ReadEntity(OsmEnt, true); // grabbing start location
-                OsmEnt.print_attributes();
+                OsmReader.ReadEntity(OsmEnt, true); // skip way id
 
-                TNodeID id = std::stoul(OsmEnt.DAttributes[0].second); //std::stoul(OsmEnt.AttributeValue("ref"));
-                int index = MNodeIds[id];
-                Node CurrNode = VNodes[index]; // if statement if we dont find it => ignore it
-                Edge connection;
-
-                while (OsmEnt.DType != SXMLEntity::EType::EndElement)
+                while ((OsmEnt.DType != SXMLEntity::EType::EndElement) || (OsmEnt.DNameData != "way"))
                 {
-                    std::cout << __LINE__ << std::endl;
-                    OsmReader.ReadEntity(OsmEnt, true);
-                    if (OsmEnt.DNameData == "nd")
+                    if ((OsmEnt.DType == SXMLEntity::EType::StartElement) && (OsmEnt.DNameData == "nd"))
                     {
                         TNodeID id = std::stoul(OsmEnt.AttributeValue("ref"));
-                        int index = MNodeIds[id];
-                        Node DestNode = VNodes[index];
-                        connection.nodeid = std::stoul(OsmEnt.AttributeValue("ref"));
-                        connection.nodeindex = MNodeIds[connection.nodeid];
-                        connection.distance = HaversineDistance(CurrNode.location.first, CurrNode.location.second,
-                                                                DestNode.location.first, DestNode.location.second);
-                        connection.speed = speedlimit;
-                        connection.oneway = oneway;
-                        CurrNode.vedges.push_back(connection);
+                        
+                        // while(!MNodeIds.count(id)) 
+                        // {
+                        //     OsmReader.ReadEntity(OsmEnt, true);
+                        // }
 
-                        // move to the next node
+                        // TNodeID id = std::stoul(OsmEnt.AttributeValue("ref")); // do later
+
+                        int index = MNodeIds[id];
+                        Node CurrNode = VNodes[index];
                         TempStorage.push_back(CurrNode);
-                        CurrNode = DestNode;
+                        OsmReader.ReadEntity(OsmEnt, true);
                     }
-                    else if (OsmEnt.DNameData == "tag")
+                    else if ((OsmEnt.DType == SXMLEntity::EType::StartElement) && OsmEnt.DNameData == "tag")
                     {
-                        if(OsmEnt.AttributeValue("k") == "maxspeed")
+                        if (OsmEnt.AttributeValue("k") == "maxspeed")
                         {
                             speedlimit = std::stod(OsmEnt.AttributeValue("v"));
                         }
@@ -144,53 +118,65 @@ bool CMapRouter::LoadMapAndRoutes(std::istream &osm, std::istream &stops, std::i
                         {
                             oneway = OsmEnt.AttributeValue("v") == "yes" ? true : false;
                         }
+
+                        OsmReader.ReadEntity(OsmEnt, true);
                     }
-                }
-                
-                if (speedlimit != 25 || oneway == false)
-                {
-                    int count = 0;
-                    for (int i = 0; i < TempStorage.size(); i++)
+                    else
                     {
-                        if (TempStorage[i].vedges.back().nodeid == TempStorage[i + 1].NodeID)
-                        {
-                            TempStorage[i].vedges.back().speed = speedlimit;
-                            TempStorage[i].vedges.back().oneway = oneway;
-                            
-                            if (TempStorage.size() - 1 == i)
-                            {
-                                TempStorage[i].vedges.back().speed = speedlimit;
-                                TempStorage[i].vedges.back().oneway = oneway;
-                                break;
-                            }
-                            
-                        }
-                        else
-                        {
-                            /* what do we do if we have a cycle? */
-                        }
+                        OsmReader.ReadEntity(OsmEnt, true);
                         
                     }
                 }
 
-                if (oneway == false)
+                for (int i = 0; i < TempStorage.size(); i++)
                 {
-                    for (int i = TempStorage.size() - 1; i < 0; i--)
+                    int walking_speed = 3;
+                    Edge connection;
+
+                    connection.distance = HaversineDistance(TempStorage[i].location.first, TempStorage[i].location.second,
+                                                            TempStorage[i + 1].location.first, TempStorage[i + 1].location.second);
+                    connection.time = connection.distance/walking_speed;
+                    connection.speed = speedlimit;
+                    connection.oneway = oneway;
+
+                    TNodeID current = TempStorage[i].NodeID;
+                    TNodeIndex current_index = MNodeIds[current];
+                    TNodeID next = TempStorage[i + 1].NodeID;
+                    TNodeIndex next_index = MNodeIds[next];
+
+                    connection.nodeid = next;
+                    connection.nodeindex = next_index;
+                    TempStorage[i].vedges.push_back(connection);
+
+                    if (oneway == false)
                     {
-                        auto CurrNodeBW = TempStorage[i];
-                        auto Destination = TempStorage[i - 1];
-                        Edge TempEdge;
-                        TempEdge ^= TempStorage[i].vedges.back();
-                        TempEdge.nodeid = Destination.NodeID;
-                        TempEdge.nodeindex = MNodeIds[Destination.NodeID];
-                        CurrNode.vedges.push_back(TempEdge);                        
+                        connection.nodeid = current;
+                        connection.nodeindex = current_index;
+                        TempStorage[i + 1].vedges.push_back(connection);
                     }
-                    
-                }     
-
+                }
             }
-
         }
+    }
+
+    CCSVReader StopsReader(stops);
+    CCSVReader RoutesReader(routes);
+
+    std::vector <std::string> TempStops;
+    std::vector <std::string> TempRoutes;
+    
+    StopsReader.ReadRow(TempStops); // header
+
+    while (!StopsReader.End())
+    {
+        StopsReader.ReadRow(TempStops);
+        TStopID stopid = std::stoul(TempStops[0]);
+        TNodeID nodeid = std::stoul(TempStops[1]);
+        int index = MNodeIds[nodeid];
+
+        MTStopNodeIds[stopid] = nodeid;
+        MTNodeStopIds[nodeid] = stopid;
+        VNodes[index].stop = stopid;
     }
 
     return true;

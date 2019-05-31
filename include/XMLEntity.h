@@ -50,12 +50,13 @@ void print_attributes()
         std::string values;
         for (auto &Attribute : DAttributes)
         {
-            keys += std::get<0>(Attribute);
-            values += std::get<1>(Attribute);
+            keys += " " +  std::get<0>(Attribute);
+            values += " " + std::get<1>(Attribute);
         }
 
         std::cout << "keys: " << keys << std::endl;
         std::cout << "values: " << values << std::endl;
+        std::cout << "type: " << int(DType) << std::endl;
     }
 };
    

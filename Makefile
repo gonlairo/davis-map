@@ -26,7 +26,7 @@ bin/findroute: $(OBJDIR)/main.o $(OBJDIR)/CSVReader.o $(OBJDIR)/CSVWriter.o $(OB
 $(OBJDIR)/main.o: $(SRCDIR)/main.cpp  $(INCLUDEDIR)/MapRouter.h $(INCLUDEDIR)/CSVReader.h $(INCLUDEDIR)/CSVWriter.h $(INCLUDEDIR)/XMLReader.h $(INCLUDEDIR)/XMLWriter.h $(INCLUDEDIR)/XMLEntity.h $(INCLUDEDIR)/StringUtils.h
 	$(CXX) $(CXXFLAGS) -c $(SRCDIR)/main.cpp -o $(OBJDIR)/main.o 
 
-$(OBJDIR)/MapRouter.o: $(SRCDIR)/MapRouter.cpp $(INCLUDEDIR)/MapRouter.h
+$(OBJDIR)/MapRouter.o: $(SRCDIR)/MapRouter.cpp $(INCLUDEDIR)/MapRouter.h include/XMLEntity.h
 	$(CXX) $(CXXFLAGS) -c $(SRCDIR)/MapRouter.cpp -o $(OBJDIR)/MapRouter.o
 
 $(OBJDIR)/CSVReader.o: $(SRCDIR)/CSVReader.cpp $(INCLUDEDIR)/CSVReader.h
@@ -35,10 +35,10 @@ $(OBJDIR)/CSVReader.o: $(SRCDIR)/CSVReader.cpp $(INCLUDEDIR)/CSVReader.h
 $(OBJDIR)/CSVWriter.o: $(SRCDIR)/CSVWriter.cpp $(INCLUDEDIR)/CSVWriter.h
 	$(CXX) $(CXXFLAGS) -c $(SRCDIR)/CSVWriter.cpp -o $(OBJDIR)/CSVWriter.o
 
-$(OBJDIR)/XMLReader.o: $(SRCDIR)/XMLReader.cpp $(INCLUDEDIR)/XMLReader.h
+$(OBJDIR)/XMLReader.o: $(SRCDIR)/XMLReader.cpp $(INCLUDEDIR)/XMLReader.h include/XMLEntity.h
 	$(CXX) $(CXXFLAGS) -c $(SRCDIR)/XMLReader.cpp -o $(OBJDIR)/XMLReader.o
 
-$(OBJDIR)/XMLWriter.o: $(SRCDIR)/XMLWriter.cpp $(INCLUDEDIR)/XMLWriter.h
+$(OBJDIR)/XMLWriter.o: $(SRCDIR)/XMLWriter.cpp $(INCLUDEDIR)/XMLWriter.h include/XMLEntity.h
 	$(CXX) $(CXXFLAGS) -c $(SRCDIR)/XMLWriter.cpp -o $(OBJDIR)/XMLWriter.o
 
 $(OBJDIR)/StringUtils.o: $(SRCDIR)/StringUtils.cpp $(INCLUDEDIR)/StringUtils.h
