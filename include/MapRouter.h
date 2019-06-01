@@ -53,7 +53,7 @@ class CMapRouter{
         // bus information
         std::map <TStopID, TNodeID> MTStopNodeIds;
         std::map <TNodeID, TStopID> MTNodeStopIds;
-        std::vector <std::pair<std::string, std::vector <TStopID>> > VBusRoutes;
+        std::map <std::string, std::vector <TStopID>> MBusRoutes;
 
 
     public:

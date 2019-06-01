@@ -160,11 +160,7 @@ bool CMapRouter::LoadMapAndRoutes(std::istream &osm, std::istream &stops, std::i
     }
 
     CCSVReader StopsReader(stops);
-    CCSVReader RoutesReader(routes);
-
     std::vector <std::string> TempStops;
-    std::vector <std::string> TempRoutes;
-    
     StopsReader.ReadRow(TempStops); // header
 
     while (!StopsReader.End())
@@ -177,6 +173,18 @@ bool CMapRouter::LoadMapAndRoutes(std::istream &osm, std::istream &stops, std::i
         MTStopNodeIds[stopid] = nodeid;
         MTNodeStopIds[nodeid] = stopid;
         VNodes[index].stop = stopid;
+    }
+
+    CCSVReader RoutesReader(routes);
+    std::vector<std::string> TempRoutes;
+    RoutesReader.ReadRow(TempRoutes);
+    
+    while (!RoutesReader.End())
+    {
+        RoutesReader.ReadRow(TempRoutes);
+        std::string BusName = TempRoutes[0];
+        TStopID stopid = std::stoul(TempStops[1]);
+        MBusRoutes[BusName].push_back(stopid);
     }
 
     return true;
@@ -201,19 +209,23 @@ CMapRouter::TLocation CMapRouter::GetSortedNodeLocationByIndex(size_t index) con
 }
 
 CMapRouter::TLocation CMapRouter::GetNodeLocationByID(TNodeID nodeid) const{
-    // Your code HERE
+    int index = MNodeIds.at(nodeid);
+    auto Node = VNodes[index];
+    return Node.location;
 }
 
 CMapRouter::TNodeID CMapRouter::GetNodeIDByStopID(TStopID stopid) const{
-    // Your code HERE
+    return MTStopNodeIds.at(stopid);
 }
 
 size_t CMapRouter::RouteCount() const{
-    // Your code HERE
+    return MBusRoutes.size();
 }
 
 std::string CMapRouter::GetSortedRouteNameByIndex(size_t index) const{
-    // Your code HERE
+    // std::map<std::string, std::vector<TStopID>>::iterator it;
+    auto it = MBusRoutes.begin();
+
 }
 
 bool CMapRouter::GetRouteStopsByRouteName(const std::string &route, std::vector< TStopID > &stops){
