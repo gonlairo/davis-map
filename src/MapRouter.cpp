@@ -96,6 +96,7 @@ bool CMapRouter::LoadMapAndRoutes(std::istream &osm, std::istream &stops, std::i
                     {
                         TNodeID id = std::stoul(OsmEnt.AttributeValue("ref"));
                         
+                        // IGNORE NODE IF WE DIDNT READ IT BEFORE
                         // while(!MNodeIds.count(id)) 
                         // {
                         //     OsmReader.ReadEntity(OsmEnt, true);
@@ -128,13 +129,18 @@ bool CMapRouter::LoadMapAndRoutes(std::istream &osm, std::istream &stops, std::i
                     }
                 }
 
-                for (int i = 0; i < TempStorage.size(); i++)
+                std::cout << TempStorage.size() << std::endl;
+                
+                // CHECK OUT OF BOUNDS (- 1 WORKS?)
+                for (int i = 0; i < TempStorage.size() - 1; i++)
                 {
                     int walking_speed = 3;
                     Edge connection;
 
                     connection.distance = HaversineDistance(TempStorage[i].location.first, TempStorage[i].location.second,
                                                             TempStorage[i + 1].location.first, TempStorage[i + 1].location.second);
+
+                    //std::cout << "distance between " << TempStorage[i].NodeID << " and " << TempStorage[i + 1].NodeID << " is: " << connection.distance << std::endl;
                     connection.time = connection.distance/walking_speed;
                     connection.speed = speedlimit;
                     connection.oneway = oneway;
@@ -146,13 +152,13 @@ bool CMapRouter::LoadMapAndRoutes(std::istream &osm, std::istream &stops, std::i
 
                     connection.nodeid = next;
                     connection.nodeindex = next_index;
-                    TempStorage[i].vedges.push_back(connection);
+                    VNodes[MNodeIds[current]].vedges.push_back(connection); // check
 
                     if (oneway == false)
                     {
                         connection.nodeid = current;
                         connection.nodeindex = current_index;
-                        TempStorage[i + 1].vedges.push_back(connection);
+                        VNodes[MNodeIds[next]].vedges.push_back(connection); // check
                     }
                 }
             }
@@ -223,9 +229,9 @@ size_t CMapRouter::RouteCount() const{
 }
 
 std::string CMapRouter::GetSortedRouteNameByIndex(size_t index) const{
-    // std::map<std::string, std::vector<TStopID>>::iterator it;
     auto it = MBusRoutes.begin();
-
+    std::advance(it, index); // this is O(n)
+    return it->first;
 }
 
 bool CMapRouter::GetRouteStopsByRouteName(const std::string &route, std::vector< TStopID > &stops){
@@ -233,11 +239,97 @@ bool CMapRouter::GetRouteStopsByRouteName(const std::string &route, std::vector<
 }
 
 double CMapRouter::FindShortestPath(TNodeID src, TNodeID dest, std::vector< TNodeID > &path){
-    // Your code HERE
+    TNodeIndex src_index = MNodeIds[src];
+    TNodeIndex dest_index = MNodeIds[dest];
+
+    typedef std::pair<double, TNodeIndex> npair; // pair of distance (weight) / TNodeIndex (Node)
+    std::priority_queue<npair, std::vector<npair>, std::greater<npair>> pq;
+
+
+    std::vector<double> dist(VNodes.size(), INFINITY);
+    std::vector<double> prev(VNodes.size());
+
+    pq.push(std::make_pair(0, src_index));
+    dist[src_index] = 0;
+    // prev[src_index] = -1 or something
+
+    while (!pq.empty())
+    {
+        Node current = VNodes[pq.top().second];
+        TNodeIndex current_index = MNodeIds[current.NodeID];
+        pq.pop();
+
+        for (auto edge : current.vedges)
+        {
+            double altdist = dist[current_index] + edge.distance;
+            if (altdist <= dist[edge.nodeindex])
+            {
+                if (dist[edge.nodeindex] == INFINITY)
+                {
+                    pq.push(std::make_pair(altdist, edge.nodeindex));
+                }
+                dist[edge.nodeindex] = altdist;
+                prev[edge.nodeindex] = current_index;
+            }
+        }
+
+        // std::cout << "\n";
+
+        // for (int i = 0; i < dist.size(); i++)
+        // {
+        //     std::cout << dist[i] << " ";
+        // }
+
+        // std::cout << "\n";
+
+        // for (int i = 0; i < prev.size(); i++)
+        // {
+        //     std::cout << prev[i] << " ";
+        // }
+
+        // std::cout << "\n";
+    }
+
+
+    path.clear();
+    TNodeIndex Dindex = dest_index; 
+
+    path.insert(path.begin(), VNodes[Dindex].NodeID);
+    while (Dindex != src_index)
+    {
+        path.insert(path.begin(), VNodes[prev[Dindex]].NodeID);
+        Dindex = prev[Dindex];
+    }
+
+
+    std::cout << "\n";
+    for (int i = 0; i < path.size(); i++)
+    {
+        std::cout << path[i] << " ";
+    }
+    std::cout << "\n";
+
+    // for (int i = 0; i < dist.size(); i++)
+    // {
+    //     std::cout << dist[i] << " ";
+        
+    // }
+
+    // std::cout << "\n";
+
+    // for (int i = 0; i < prev.size(); i++)
+    // {
+    //     std::cout << prev[i] << " ";
+    // }
+
+    // std::cout << "\n";
+
+    return dist[dest_index];
 }
 
 double CMapRouter::FindFastestPath(TNodeID src, TNodeID dest, std::vector< TPathStep > &path){
-    // Your code HERE
+    
+    
 }
 
 bool CMapRouter::GetPathDescription(const std::vector< TPathStep > &path, std::vector< std::string > &desc) const{

@@ -24,9 +24,9 @@ class CMapRouter{
         class Edge
         {
             public:
-            TNodeID nodeid; // it may be better to store it as an index
+            TNodeID nodeid;
             TNodeIndex nodeindex;
-            double distance; // harversine
+            double distance; 
             int time;
 
             double speed;
