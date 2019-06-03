@@ -27,8 +27,8 @@ class CMapRouter{
             TNodeID nodeid;
             TNodeIndex nodeindex;
             double distance; 
-            int time;
-
+            double walking_time;
+            double bus_time;
             double speed;
             bool oneway;
             bool busroute;
@@ -54,7 +54,7 @@ class CMapRouter{
         std::map <TStopID, TNodeID> MTStopNodeIds;
         std::map <TNodeID, TStopID> MTNodeStopIds;
         std::map <std::string, std::vector <TStopID>> MBusRoutes;
-
+        std::map < std::make_tuple(TNodeID, TNodeID, double) , std::vector<TNodeID> > MStopSteps; 
 
     public:
         CMapRouter();
