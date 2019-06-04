@@ -45,17 +45,17 @@ const char StopsCSVFileData[] =
                                 "21,3\n"
                                 "22,4\n"
                                 "23,5";
-                                
-const char RoutesCSVFileData[] =    "route,stop_id\n"
-                                    "A,20\n"
-                                    "A,21\n"
-                                    "B,23\n"
-                                    "B,23\n"
-                                    "B,23\n"
-                                    "C,23\n"
-                                    "C,23\n"
-                                    "D,23\n"
-                                    "E,23";
+
+const char RoutesCSVFileData[] = "route,stop_id\n"
+                                 "A,20\n"
+                                 "A,23\n";
+                                //  "B,23\n"
+                                //  "B,23\n"
+                                //  "B,23\n"
+                                //  "C,23\n"
+                                //  "C,23\n"
+                                //  "D,23\n"
+                                //  "E,23";
 TEST(MapRouter,BasicTest){
     std::stringstream InOSM(OSMFileData);
     std::stringstream InStops(StopsCSVFileData);

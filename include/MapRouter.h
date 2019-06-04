@@ -4,6 +4,7 @@
 #include <vector>
 #include <istream>
 #include <map>
+#include <tuple>
 
 // ways: if we cant find a node in a way, just ignore it.
 // important tags: speed / oneway
@@ -49,12 +50,11 @@ class CMapRouter{
         std::vector<Node> VNodes;
         std::map<TNodeID, TNodeIndex> MNodeIds; //key=nodeid, value=index
         std::vector<TNodeID> VSortedIds;
-
-        // bus information
         std::map <TStopID, TNodeID> MTStopNodeIds;
         std::map <TNodeID, TStopID> MTNodeStopIds;
         std::map <std::string, std::vector <TStopID>> MBusRoutes;
-        std::map < std::make_tuple(TNodeID, TNodeID, double) , std::vector<TNodeID> > MStopSteps; 
+        typedef std::tuple <TNodeID, TNodeID, double> tuple;
+        std::map<tuple, std::vector<TNodeID>> MStopSteps;
 
     public:
         CMapRouter();
@@ -76,9 +76,12 @@ class CMapRouter{
         
         double FindShortestPath(TNodeID src, TNodeID dest, std::vector< TNodeID > &path);
         double FindFastestPath(TNodeID src, TNodeID dest, std::vector< TPathStep > &path);
+        double dijkstras(TNodeID src, TNodeID dest, std::vector<TNodeID> &path, bool findfastest = true);
         bool GetPathDescription(const std::vector< TPathStep > &path, std::vector< std::string > &desc) const;
-
-
+        
+        //delete
+        void print_vector(std::vector<TStopID> v);
+        void print_vector_string(std::vector<std::string> v);
 };
 
 #endif
