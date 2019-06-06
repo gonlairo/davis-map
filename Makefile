@@ -13,8 +13,7 @@ INCLUDEDIR = ./include
 INCLUDE = -I $(INCLUDEDIR)
 CURDIR = $(shell pwd)
 
-all: directories test $(LIBDIR)/$(LIBCSVNAME) 
-#bin/findroute
+all: directories bin/findroute test $(LIBDIR)/$(LIBCSVNAME) 
 
 test: testbin/testrouter
 	./testbin/testrouter

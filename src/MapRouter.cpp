@@ -9,7 +9,7 @@
 #include <map>
 #include <tuple>
 #include <string>
-
+#include <limits>
 const CMapRouter::TNodeID CMapRouter::InvalidNodeID = -1;
 
 CMapRouter::CMapRouter(){
@@ -138,6 +138,7 @@ bool CMapRouter::LoadMapAndRoutes(std::istream &osm, std::istream &stops, std::i
                     connection.time = connection.distance/walking_speed;
                     connection.speed = speedlimit;
                     connection.oneway = oneway;
+                    connection.busedge = false;
 
                     TNodeID current = TempStorage[i].NodeID;
                     TNodeIndex current_index = MNodeIds[current];
@@ -196,11 +197,14 @@ bool CMapRouter::LoadMapAndRoutes(std::istream &osm, std::istream &stops, std::i
         {
             TNodeID start = MTStopNodeIds[Vstops[i]];
             TNodeID dest = MTStopNodeIds[Vstops[i+1]];
+            std::cout << "start: " << start << std::endl;
+            std::cout << "end: " << dest << std::endl;
             auto fastest = dijkstras(start, dest, temppath, 2);
             BusEdgeInfo temp;
             temp.time = fastest + 1.0/120.0;
             temp.path = temppath;
             temp.RouteNames.push_back(kv.first);
+            print_vector_string(temp.RouteNames);
             
             double distance;
             for (int i = 0; i < temppath.size(); i++)
@@ -228,11 +232,12 @@ bool CMapRouter::LoadMapAndRoutes(std::istream &osm, std::istream &stops, std::i
         BusEdgeInfo second = kv.second;
         TNodeID startid = std::get<0>(first);
         Edge busedge;
-        
+
         busedge.nodeid = std::get<1>(first);
         busedge.nodeindex = MNodeIds[std::get<1>(first)];
         busedge.distance = second.distance;
         busedge.time = second.time;
+        busedge.busedge = true;
         VNodes[MNodeIds[startid]].vedges.push_back(busedge);
     }
 
@@ -287,15 +292,49 @@ double CMapRouter::FindShortestPath(TNodeID src, TNodeID dest, std::vector< TNod
 }
 
 
-double CMapRouter::FindFastestPath(TNodeID src, TNodeID dest, std::vector< TPathStep > &path){
-    std::vector <TNodeID> path1;
-    auto a = dijkstras(src, dest, path1, 1);
-    print_vector(path1);
-    std::cout << a << std::endl;
-    return a;
+double CMapRouter::FindFastestPath(TNodeID src, TNodeID dest, std::vector< TPathStep > &path)
+{
+    std::vector <TNodeID> route;
+    auto fastest = dijkstras(src, dest, route, 1);
+    print_vector(route);
+
+    path.push_back(std::make_pair("Walk",route[0]));
+    for (int i = 0; i < route.size() - 1; i++)
+    {
+        auto start = route[i];
+        auto start_index = MNodeIds[start];
+        auto next = route[i + 1];
+        auto next_index = MNodeIds[next];
+
+        
+        // not all of them will exist
+
+        if(MStopSteps.end() != MStopSteps.find(std::make_tuple(start, next)))
+        {
+            auto name = "Bus " + MStopSteps[(std::make_tuple(start, next))].RouteNames[0];
+            auto inside_path = MStopSteps[(std::make_tuple(start, next))].path;
+            for (int j = 1; j < inside_path.size(); j++)
+            {
+                path.push_back(std::make_pair(name, inside_path[j]));
+            } 
+        }
+        else
+        {
+            path.push_back(std::make_pair("Walk", next));
+        }  
+    }
+
+    for (auto el : path)
+    {
+        std::cout << el.first << " " << el.second << std::endl;
+    }
+
+    return fastest;
 }
 
-bool CMapRouter::GetPathDescription(const std::vector< TPathStep > &path, std::vector< std::string > &desc) const{
+bool CMapRouter::GetPathDescription(const std::vector< TPathStep > &path, std::vector< std::string > &desc) const
+{
+
     // Your code HERE
 }
 
@@ -303,6 +342,8 @@ bool CMapRouter::GetPathDescription(const std::vector< TPathStep > &path, std::v
 
 double CMapRouter::dijkstras(TNodeID src, TNodeID dest, std::vector<TNodeID> &path, int method)
 {
+
+    const int infinity = std::numeric_limits<int>::max();
     TNodeIndex src_index = MNodeIds[src];
     TNodeIndex dest_index = MNodeIds[dest];
 
@@ -310,8 +351,9 @@ double CMapRouter::dijkstras(TNodeID src, TNodeID dest, std::vector<TNodeID> &pa
     std::priority_queue<npair, std::vector<npair>, std::greater<npair>> pq;
 
 
-    std::vector<double> dist(VNodes.size(), INFINITY);
+    std::vector<double> dist(VNodes.size(), infinity);
     std::vector<double> prev(VNodes.size());
+    std::vector<bool> visited(VNodes.size(), false);
 
     pq.push(std::make_pair(0, src_index));
     dist[src_index] = 0;
@@ -321,15 +363,22 @@ double CMapRouter::dijkstras(TNodeID src, TNodeID dest, std::vector<TNodeID> &pa
         Node current = VNodes[pq.top().second];
         TNodeIndex current_index = MNodeIds[current.NodeID];
         pq.pop();
+        if(visited[current_index])
+        {
+            continue;
+        }
+        visited[current_index] = true;
+        if(current.NodeID == dest) break;
 
         for (auto edge : current.vedges)
         {
             double altdist = dist[current_index] + (method == 1 ? edge.time : (method == 0 ? edge.distance : edge.distance/edge.speed));   
-            if (altdist < dist[edge.nodeindex])
+            if (altdist < dist[edge.nodeindex] && !visited[edge.nodeindex])
             {
                 dist[edge.nodeindex] = altdist;
                 prev[edge.nodeindex] = current_index;
                 pq.push(std::make_pair(altdist, edge.nodeindex));
+                //print_vector_bool(visited);
             }   
         }  
     }
@@ -373,6 +422,18 @@ void CMapRouter::print_vector(std::vector<TStopID> v)
 }
 
 void CMapRouter::print_vector_string(std::vector<std::string> v)
+{
+    std::string ret;
+    // std::cout << "sssize: " << v.size() << std::endl;
+    for (int i = 0; i < v.size(); i++)
+    {
+        std::cout << v[i] << " ";
+    }
+
+    std::cout << std::endl;
+}
+
+void CMapRouter::print_vector_bool(std::vector <bool> v)
 {
     std::string ret;
     // std::cout << "sssize: " << v.size() << std::endl;

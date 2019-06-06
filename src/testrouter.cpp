@@ -50,6 +50,8 @@ const char RoutesCSVFileData[] = "route,stop_id\n"
                                  "A,20\n"
                                  "A,21\n"
                                  "A,23\n";
+
+
     
 TEST(MapRouter,BasicTest){
     std::stringstream InOSM(OSMFileData);
@@ -132,6 +134,7 @@ TEST(MapRouter,FastestPathTest){
     EXPECT_TRUE(MapRouter.LoadMapAndRoutes(InOSM, InStops, InRoutes));
     EXPECT_EQ(MapRouter.FindFastestPath(1, 6, Path), 54.3815860394229702);
     EXPECT_EQ(Path.size(), 6);
+
     if(6 == Path.size()){
         EXPECT_EQ(std::get<0>(Path[0]), "Walk");
         EXPECT_EQ(std::get<1>(Path[0]), 1);
@@ -148,20 +151,20 @@ TEST(MapRouter,FastestPathTest){
     }
 }
 
-// TEST(MapRouter,PathDescriptionTest){
-//     std::stringstream InOSM(OSMFileData);
-//     std::stringstream InStops(StopsCSVFileData);
-//     std::stringstream InRoutes(RoutesCSVFileData);
-//     CMapRouter MapRouter;
-//     std::vector< CMapRouter::TPathStep > Path;
-//     std::vector< std::string > Description;
-//     EXPECT_TRUE(MapRouter.LoadMapAndRoutes(InOSM, InStops, InRoutes));
-//     EXPECT_EQ(MapRouter.FindFastestPath(1, 6, Path), 54.3815860394229702);
-//     EXPECT_TRUE(MapRouter.GetPathDescription(Path, Description));
-//     EXPECT_EQ(Description[0],"Start at 0d 0' 0\" N, 0d 0' 0\" E");
-//     EXPECT_EQ(Description[1],"Walk E to 0d 0' 0\" N, 1d 0' 0\" E");
-//     EXPECT_EQ(Description[2],"Take Bus A and get off at stop 23");
-//     EXPECT_EQ(Description[3],"Walk W to 1d 0' 0\" N, 0d 0' 0\" E");
-//     EXPECT_EQ(Description[4],"End at 1d 0' 0\" N, 0d 0' 0\" E");
+TEST(MapRouter,PathDescriptionTest){
+    std::stringstream InOSM(OSMFileData);
+    std::stringstream InStops(StopsCSVFileData);
+    std::stringstream InRoutes(RoutesCSVFileData);
+    CMapRouter MapRouter;
+    std::vector< CMapRouter::TPathStep > Path;
+    std::vector< std::string > Description;
+    EXPECT_TRUE(MapRouter.LoadMapAndRoutes(InOSM, InStops, InRoutes));
+    EXPECT_EQ(MapRouter.FindFastestPath(1, 6, Path), 54.3815860394229702);
+    EXPECT_TRUE(MapRouter.GetPathDescription(Path, Description));
+    EXPECT_EQ(Description[0],"Start at 0d 0' 0\" N, 0d 0' 0\" E");
+    EXPECT_EQ(Description[1],"Walk E to 0d 0' 0\" N, 1d 0' 0\" E");
+    EXPECT_EQ(Description[2],"Take Bus A and get off at stop 23");
+    EXPECT_EQ(Description[3],"Walk W to 1d 0' 0\" N, 0d 0' 0\" E");
+    EXPECT_EQ(Description[4],"End at 1d 0' 0\" N, 0d 0' 0\" E");
     
-// }
+}

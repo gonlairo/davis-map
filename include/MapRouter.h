@@ -38,7 +38,8 @@ class CMapRouter{
             double distance; 
             double time;
             double speed;
-            bool oneway;  
+            bool oneway;
+            bool busedge;  
         };
 
         class Node
@@ -56,6 +57,8 @@ class CMapRouter{
         std::vector<Node> VNodes;
         std::map<TNodeID, TNodeIndex> MNodeIds; //key=nodeid, value=index
         std::vector<TNodeID> VSortedIds;
+
+        // bus information
         std::map <TStopID, TNodeID> MTStopNodeIds;
         std::map <TNodeID, TStopID> MTNodeStopIds;
         std::map <std::string, std::vector <TStopID>> MBusRoutes;
@@ -71,7 +74,6 @@ class CMapRouter{
         
         bool LoadMapAndRoutes(std::istream &osm, std::istream &stops, std::istream &routes);
         size_t NodeCount() const;
-        // MapID.size();
         TNodeID GetSortedNodeIDByIndex(size_t index) const;
         TLocation GetSortedNodeLocationByIndex(size_t index) const;
         TLocation GetNodeLocationByID(TNodeID nodeid) const;
@@ -88,6 +90,7 @@ class CMapRouter{
         //delete
         void print_vector(std::vector<TStopID> v);
         void print_vector_string(std::vector<std::string> v);
+        void print_vector_bool(std::vector<bool> v);
 };
 
 #endif
