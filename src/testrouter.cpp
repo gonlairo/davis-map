@@ -48,14 +48,9 @@ const char StopsCSVFileData[] =
 
 const char RoutesCSVFileData[] = "route,stop_id\n"
                                  "A,20\n"
+                                 "A,21\n"
                                  "A,23\n";
-                                //  "B,20\n"
-                                //  "B,21\n"
-                                //  "B,24\n"
-                                //  "C,23\n"
-                                //  "C,23\n"
-                                //  "D,23\n"
-                                //  "E,23";
+    
 TEST(MapRouter,BasicTest){
     std::stringstream InOSM(OSMFileData);
     std::stringstream InStops(StopsCSVFileData);
@@ -94,19 +89,19 @@ TEST(MapRouter,BasicTest){
     
 
 
-    // EXPECT_EQ(MapRouter.RouteCount(), 1);
-    // EXPECT_EQ(MapRouter.GetSortedRouteNameByIndex(0), "A");
-    // EXPECT_EQ(MapRouter.GetNodeIDByStopID(20), 2);
-    // EXPECT_EQ(MapRouter.GetNodeIDByStopID(21), 3);
-    // EXPECT_EQ(MapRouter.GetNodeIDByStopID(22), 4);
-    // EXPECT_EQ(MapRouter.GetNodeIDByStopID(23), 5);
-    // std::vector< CMapRouter::TStopID > Stops;
+    EXPECT_EQ(MapRouter.RouteCount(), 1);
+    EXPECT_EQ(MapRouter.GetSortedRouteNameByIndex(0), "A");
+    EXPECT_EQ(MapRouter.GetNodeIDByStopID(20), 2);
+    EXPECT_EQ(MapRouter.GetNodeIDByStopID(21), 3);
+    EXPECT_EQ(MapRouter.GetNodeIDByStopID(22), 4);
+    EXPECT_EQ(MapRouter.GetNodeIDByStopID(23), 5);
+    std::vector< CMapRouter::TStopID > Stops;
     
-    // EXPECT_TRUE(MapRouter.GetRouteStopsByRouteName("A",Stops));
-    // EXPECT_EQ(Stops.size(), 3);
-    // EXPECT_EQ(Stops[0], 20);
-    // EXPECT_EQ(Stops[1], 21);
-    // EXPECT_EQ(Stops[2], 23);
+    EXPECT_TRUE(MapRouter.GetRouteStopsByRouteName("A",Stops));
+    EXPECT_EQ(Stops.size(), 3);
+    EXPECT_EQ(Stops[0], 20);
+    EXPECT_EQ(Stops[1], 21);
+    EXPECT_EQ(Stops[2], 23);
 }
 
 TEST(MapRouter,ShortestPathTest){
@@ -119,47 +114,39 @@ TEST(MapRouter,ShortestPathTest){
     EXPECT_TRUE(MapRouter.LoadMapAndRoutes(InOSM, InStops, InRoutes));
     EXPECT_EQ(MapRouter.FindShortestPath(4, 3, Path), 166.840398945223);
     EXPECT_EQ(Path.size(), 3);
-    if(3 == Path.size()){
+    if(3 == Path.size())
+    {
         EXPECT_EQ(Path[0], 4);
         EXPECT_EQ(Path[1], 5);
         EXPECT_EQ(Path[2], 3);
     }
-
-    // EXPECT_EQ(MapRouter.FindShortestPath(4, 2, Path), 138.215);
-    // EXPECT_EQ(Path.size(), 3);
-    // if (3 == Path.size())
-    // {
-    //     EXPECT_EQ(Path[0], 4);
-    //     EXPECT_EQ(Path[1], 5);
-    //     EXPECT_EQ(Path[2], 2);
-    // }
 }
 
-// TEST(MapRouter,FastestPathTest){
-//     std::stringstream InOSM(OSMFileData);
-//     std::stringstream InStops(StopsCSVFileData);
-//     std::stringstream InRoutes(RoutesCSVFileData);
-//     CMapRouter MapRouter;
-//     std::vector< CMapRouter::TPathStep > Path;
+TEST(MapRouter,FastestPathTest){
+    std::stringstream InOSM(OSMFileData);
+    std::stringstream InStops(StopsCSVFileData);
+    std::stringstream InRoutes(RoutesCSVFileData);
+    CMapRouter MapRouter;
+    std::vector< CMapRouter::TPathStep > Path;
     
-//     EXPECT_TRUE(MapRouter.LoadMapAndRoutes(InOSM, InStops, InRoutes));
-//     EXPECT_EQ(MapRouter.FindFastestPath(1, 6, Path), 54.3815860394229702);
-//     EXPECT_EQ(Path.size(), 6);
-//     if(6 == Path.size()){
-//         EXPECT_EQ(std::get<0>(Path[0]), "Walk");
-//         EXPECT_EQ(std::get<1>(Path[0]), 1);
-//         EXPECT_EQ(std::get<0>(Path[1]), "Walk");
-//         EXPECT_EQ(std::get<1>(Path[1]), 2);
-//         EXPECT_EQ(std::get<0>(Path[2]), "Bus A");
-//         EXPECT_EQ(std::get<1>(Path[2]), 3);
-//         EXPECT_EQ(std::get<0>(Path[3]), "Bus A");
-//         EXPECT_EQ(std::get<1>(Path[3]), 4);
-//         EXPECT_EQ(std::get<0>(Path[4]), "Bus A");
-//         EXPECT_EQ(std::get<1>(Path[4]), 5);
-//         EXPECT_EQ(std::get<0>(Path[5]), "Walk");
-//         EXPECT_EQ(std::get<1>(Path[5]), 6);
-//     }
-// }
+    EXPECT_TRUE(MapRouter.LoadMapAndRoutes(InOSM, InStops, InRoutes));
+    EXPECT_EQ(MapRouter.FindFastestPath(1, 6, Path), 54.3815860394229702);
+    EXPECT_EQ(Path.size(), 6);
+    if(6 == Path.size()){
+        EXPECT_EQ(std::get<0>(Path[0]), "Walk");
+        EXPECT_EQ(std::get<1>(Path[0]), 1);
+        EXPECT_EQ(std::get<0>(Path[1]), "Walk");
+        EXPECT_EQ(std::get<1>(Path[1]), 2);
+        EXPECT_EQ(std::get<0>(Path[2]), "Bus A");
+        EXPECT_EQ(std::get<1>(Path[2]), 3);
+        EXPECT_EQ(std::get<0>(Path[3]), "Bus A");
+        EXPECT_EQ(std::get<1>(Path[3]), 4);
+        EXPECT_EQ(std::get<0>(Path[4]), "Bus A");
+        EXPECT_EQ(std::get<1>(Path[4]), 5);
+        EXPECT_EQ(std::get<0>(Path[5]), "Walk");
+        EXPECT_EQ(std::get<1>(Path[5]), 6);
+    }
+}
 
 // TEST(MapRouter,PathDescriptionTest){
 //     std::stringstream InOSM(OSMFileData);

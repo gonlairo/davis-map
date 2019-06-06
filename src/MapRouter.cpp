@@ -201,22 +201,23 @@ bool CMapRouter::LoadMapAndRoutes(std::istream &osm, std::istream &stops, std::i
             temp.time = fastest + 1.0/120.0;
             temp.path = temppath;
             temp.RouteNames.push_back(kv.first);
-
+            
             double distance;
             for (int i = 0; i < temppath.size(); i++)
             {
-                int index = MNodeIds[temppath[i + 1]];
+                int index = MNodeIds[temppath[i]];
+                int index_next = MNodeIds[temppath[i + 1]];
                 auto edges = VNodes[index].vedges;
-                
                 for (int j = 0; j < edges.size(); j++)
                 {
-                    if (edges[j].nodeid == VNodes[index].NodeID)
+                    if (edges[j].nodeid == VNodes[index_next].NodeID)
                     {
                         distance += edges[j].distance;
+                        
                     }
                 }
             }
-
+            
             temp.distance = distance;
             MStopSteps[std::make_tuple(start, dest)] = temp;
         }
@@ -227,10 +228,11 @@ bool CMapRouter::LoadMapAndRoutes(std::istream &osm, std::istream &stops, std::i
         BusEdgeInfo second = kv.second;
         TNodeID startid = std::get<0>(first);
         Edge busedge;
-        busedge.time = second.time; 
+        
         busedge.nodeid = std::get<1>(first);
         busedge.nodeindex = MNodeIds[std::get<1>(first)];
         busedge.distance = second.distance;
+        busedge.time = second.time;
         VNodes[MNodeIds[startid]].vedges.push_back(busedge);
     }
 
@@ -276,7 +278,8 @@ std::string CMapRouter::GetSortedRouteNameByIndex(size_t index) const{
 }
 
 bool CMapRouter::GetRouteStopsByRouteName(const std::string &route, std::vector< TStopID > &stops){
-    // Your code HERE
+    stops = MBusRoutes[route];
+    return true;
 }
 
 double CMapRouter::FindShortestPath(TNodeID src, TNodeID dest, std::vector< TNodeID > &path){
@@ -285,7 +288,11 @@ double CMapRouter::FindShortestPath(TNodeID src, TNodeID dest, std::vector< TNod
 
 
 double CMapRouter::FindFastestPath(TNodeID src, TNodeID dest, std::vector< TPathStep > &path){
-    //dijkstras(src, dest, path, true);
+    std::vector <TNodeID> path1;
+    auto a = dijkstras(src, dest, path1, 1);
+    print_vector(path1);
+    std::cout << a << std::endl;
+    return a;
 }
 
 bool CMapRouter::GetPathDescription(const std::vector< TPathStep > &path, std::vector< std::string > &desc) const{
@@ -299,7 +306,7 @@ double CMapRouter::dijkstras(TNodeID src, TNodeID dest, std::vector<TNodeID> &pa
     TNodeIndex src_index = MNodeIds[src];
     TNodeIndex dest_index = MNodeIds[dest];
 
-    typedef std::pair<double, TNodeIndex> npair; // pair of distance (weight) / TNodeIndex (Node)
+    typedef std::pair<double, TNodeIndex> npair; // pair of weight / TNodeIndex
     std::priority_queue<npair, std::vector<npair>, std::greater<npair>> pq;
 
 
@@ -339,19 +346,6 @@ double CMapRouter::dijkstras(TNodeID src, TNodeID dest, std::vector<TNodeID> &pa
 
     return dist[dest_index];
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
