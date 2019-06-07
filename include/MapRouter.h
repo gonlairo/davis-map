@@ -89,6 +89,7 @@ class CMapRouter{
         
         //delete
         void print_vector(std::vector<TStopID> v);
+        void print_vector_double(std::vector<double> v);
         void print_vector_string(std::vector<std::string> v);
         void print_vector_bool(std::vector<bool> v);
 };
