@@ -1,25 +1,13 @@
 #include <iostream>
 #include "MapRouter.h"
 #include <fstream>
-#include "CSVReader.h"
-#include "CSVWriter.h"
 #include "StringUtils.h"
-#include "XMLReader.h"
-#include "XMLWriter.h"
-#include "XMLEntity.h"
 #include <vector>
 
 int main(int argc, char *argv[])
 {
-    if (argc >= 1)
-    {
-        for (int i = 0; i < argc; i++)
-        {
-            std::cout << argv[i] << std::endl;
-        }
-    }
-    bool Done = false;
-    
+
+    bool Done = false;    
     while (!Done)
     {
         std::string InputLine;
@@ -61,12 +49,15 @@ int main(int argc, char *argv[])
             
             CMapRouter MapRouter;
             MapRouter.LoadMapAndRoutes(osm, stops, routes);
+            auto vstr = StringUtils::Split(InputLine, " ");
+            //for(auto x : vstr) std::cout << x << std::endl;
+            
 
             if(InputLine == "count")
             {
                 std::cout << MapRouter.NodeCount() << " nodes" << std::endl;
             }
-            else if (InputLine.substr(0,4) == "node")
+            else if (vstr[0] == "node")
             {
                 int node_index = stoi(InputLine.substr(5));
                 auto nodeid = MapRouter.GetSortedNodeIDByIndex(node_index);
@@ -75,18 +66,21 @@ int main(int argc, char *argv[])
                 std::cout << "Node " << node_index << ": id = " << nodeid << " is at " << std::get<0>(latlon) << ", " << std::get<1>(latlon) << std::endl;
             }
 
-            else if (InputLine.substr(0,7) == "fastest")
+            else if (vstr[0] == "fastest")
             {
-                // auto startid = std::stoul(InputLine.substr(8,8));
-                // auto endid = std::stoul(InputLine.substr(9,11));
-                // std::cout << startid << " " << endid << std::endl;
-                // std::vector <CMapRouter::TNodeID> path;
-                // auto shortest_distance = MapRouter.FindShortestPath(startid, endid, path);
-                // std::cout << shortest_distance << std::endl;
+                auto startid = std::stoul(vstr[1]);
+                auto endid = std::stoul(vstr[2]);
+                std::vector <CMapRouter::TPathStep> path;
+                auto fastest_time = MapRouter.FindFastestPath(startid, endid, path);
+                std::cout << "Fastest path takes " << fastest_time << " h/m/s" << std::endl;
             }           
-            else if (InputLine.substr(0,7) == "shortest")
+            else if (vstr[0] == "shortest")
             {
-                continue;
+                auto startid = std::stoul(vstr[1]);
+                auto endid = std::stoul(vstr[2]);
+                std::vector<CMapRouter::TNodeID> path;
+                auto shortest_distance = MapRouter.FindShortestPath(startid, endid, path);
+                std::cout << "Shortest path is " << shortest_distance << "mi" << std::endl;
             }
         }    
     }
