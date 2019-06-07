@@ -80,7 +80,7 @@ bool CMapRouter::LoadMapAndRoutes(std::istream &osm, std::istream &stops, std::i
             {
                 std::vector<Node> TempStorage;
                 double speedlimit = 25;
-                bool oneway = true;
+                bool oneway = false;
                 OsmReader.ReadEntity(OsmEnt, true); // skip way id
 
                 while ((OsmEnt.DType != SXMLEntity::EType::EndElement) || (OsmEnt.DNameData != "way"))
@@ -93,10 +93,8 @@ bool CMapRouter::LoadMapAndRoutes(std::istream &osm, std::istream &stops, std::i
                         if (!MNodeIds.count(id))
                         {
                             OsmReader.ReadEntity(OsmEnt, true);
-                            std::cout << "id not found: " << id << std::endl;
-                            std::cout << "name: " << OsmEnt.DNameData << std::endl;
-                            //id = std::stoul(OsmEnt.AttributeValue("ref"));
-                            //std::cout << "id new: " << id << std::endl;
+                            // std::cout << "id not found: " << id << std::endl;
+                            // std::cout << "name: " << OsmEnt.DNameData << std::endl;
                         }
                         else{
                             int index = MNodeIds[id];
@@ -130,7 +128,6 @@ bool CMapRouter::LoadMapAndRoutes(std::istream &osm, std::istream &stops, std::i
                 }
 
                 
-                // CHECK OUT OF BOUNDS (- 1 WORKS?)
                 for (int i = 0; i < TempStorage.size() - 1; i++)
                 {
                     int walking_speed = 3;
@@ -192,61 +189,76 @@ bool CMapRouter::LoadMapAndRoutes(std::istream &osm, std::istream &stops, std::i
         TStopID stopid = std::stoul(TempRoutes[1]);
         MBusRoutes[BusName].push_back(stopid);
     }
-    
-    for(auto kv : MBusRoutes)
-    {
-        auto Vstops = kv.second;
-        std::vector< TNodeID > temppath;
 
-        for(int i = 0; i < Vstops.size() - 1; i++)
+    unsigned long arr[] = {530445028, 5674111324, 5674111323, 480680078 ,265024842 ,3942353121, 5598433943, 3942353124 ,3942353116, 3942353115, 3942353114, 3942353113, 3942353112 ,3942353111, 3942353131 ,3942353132 ,5598433939, 3942353096 ,277046658, 95712770 ,3078996367 ,273245111, 566900815};
+    for(auto el : arr)
+    {
+        auto nodeindex = MNodeIds[el];
+        auto node = VNodes[nodeindex];
+        std::cout << "NodeID: " << el << std::endl;
+
+        for(auto x : node.vedges)
         {
-            TNodeID start = MTStopNodeIds[Vstops[i]];
-            TNodeID dest = MTStopNodeIds[Vstops[i+1]];
-            std::cout << "start!: " << start << std::endl;
-            std::cout << "end!: " << dest << std::endl;
-            auto fastest = dijkstras(start, dest, temppath, 2);
-            std::cout << "end: " << dest << std::endl;
-            BusEdgeInfo temp;
-            temp.time = fastest + 1.0/120.0;
-            temp.path = temppath;
-            temp.RouteNames.push_back(kv.first);
-            
-            double distance;
-            for (int z = 0; z < temppath.size(); z++)
+            std::cout << x.nodeid << " ";
+        }
+
+        std::cout << std::endl;
+    }
+
+        for(auto kv : MBusRoutes)
+        {
+            auto Vstops = kv.second;
+            std::vector< TNodeID > temppath;
+
+            for(int i = 0; i < Vstops.size() - 1; i++)
             {
-                int index = MNodeIds[temppath[z]];
-                int index_next = MNodeIds[temppath[z + 1]];
-                auto edges = VNodes[index].vedges;
-                for (int j = 0; j < edges.size(); j++)
+                TNodeID start = MTStopNodeIds[Vstops[i]];
+                TNodeID dest = MTStopNodeIds[Vstops[i+1]];
+                std::cout << "start!: " << start << std::endl;
+                std::cout << "end!: " << dest << std::endl;
+                auto fastest = dijkstras(start, dest, temppath, 2);
+                std::cout << "end: " << dest << std::endl;
+                BusEdgeInfo temp;
+                temp.time = fastest + 1.0/120.0;
+                temp.path = temppath;
+                temp.RouteNames.push_back(kv.first);
+
+                double distance;
+                for (int z = 0; z < temppath.size(); z++)
                 {
-                    if (edges[j].nodeid == VNodes[index_next].NodeID)
+                    int index = MNodeIds[temppath[z]];
+                    int index_next = MNodeIds[temppath[z + 1]];
+                    auto edges = VNodes[index].vedges;
+                    for (int j = 0; j < edges.size(); j++)
                     {
-                        distance += edges[j].distance;
-                        
+                        if (edges[j].nodeid == VNodes[index_next].NodeID)
+                        {
+                            distance += edges[j].distance;
+
+                        }
                     }
                 }
+
+                temp.distance = distance;
+                MStopSteps[std::make_tuple(start, dest)] = temp;
             }
-            
-            temp.distance = distance;
-            MStopSteps[std::make_tuple(start, dest)] = temp;
         }
-    }
 
-    for(auto kv : MStopSteps){
-        auto first = kv.first;
-        BusEdgeInfo second = kv.second;
-        TNodeID startid = std::get<0>(first);
-        Edge busedge;
+        for(auto kv : MStopSteps){
+            auto first = kv.first;
+            BusEdgeInfo second = kv.second;
+            TNodeID startid = std::get<0>(first);
+            Edge busedge;
 
-        busedge.nodeid = std::get<1>(first);
-        busedge.nodeindex = MNodeIds[std::get<1>(first)];
-        busedge.distance = second.distance;
-        busedge.time = second.time;
-        busedge.busedge = true;
-        VNodes[MNodeIds[startid]].vedges.push_back(busedge);
-    }
+            busedge.nodeid = std::get<1>(first);
+            busedge.nodeindex = MNodeIds[std::get<1>(first)];
+            busedge.distance = second.distance;
+            busedge.time = second.time;
+            busedge.busedge = true;
+            VNodes[MNodeIds[startid]].vedges.push_back(busedge);
+        }
 
-    return true;
+        return true;
 }
 
 size_t CMapRouter::NodeCount() const{
@@ -467,11 +479,11 @@ double CMapRouter::dijkstras(TNodeID src, TNodeID dest, std::vector<TNodeID> &pa
         }  
     }
 
-    if(dist[dest_index] == infinity)
-    {
-        std::cout << "bad" << std::endl;
-        exit(0);
-    } 
+    // if(dist[dest_index] == infinity)
+    // {
+    //     std::cout << "bad" << std::endl;
+    //     exit(0);
+    // } 
 
     // for (int i = 0; i < visited.size(); i++)
     // {
@@ -481,7 +493,6 @@ double CMapRouter::dijkstras(TNodeID src, TNodeID dest, std::vector<TNodeID> &pa
 
     path.clear();
     TNodeIndex Dindex = dest_index;
-    std::cout << __LINE__ << std::endl;
     path.insert(path.begin(), VNodes[Dindex].NodeID);
     std::cout << VNodes[Dindex].NodeID << std::endl;
     
@@ -490,7 +501,6 @@ double CMapRouter::dijkstras(TNodeID src, TNodeID dest, std::vector<TNodeID> &pa
         std::cout << __LINE__ << " " << Dindex << std::endl;
         path.insert(path.begin(), VNodes[prev[Dindex]].NodeID);
         Dindex = prev[Dindex];
-        //print_vector_double(prev);
     }
 
     return dist[dest_index];
