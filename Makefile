@@ -18,9 +18,8 @@ all: directories bin/findroute test $(LIBDIR)/$(LIBCSVNAME)
 test: testbin/testrouter
 	./testbin/testrouter
 
-bin/findroute: $(OBJDIR)/main.o $(OBJDIR)/CSVReader.o $(OBJDIR)/CSVWriter.o $(OBJDIR)/XMLReader.o $(OBJDIR)/XMLWriter.o $(OBJDIR)/StringUtils.o include/XMLEntity.h
-	$(CXX) $(CXXFLAGS) $(OBJDIR)/main.o $(OBJDIR)/CSVReader.o $(OBJDIR)/CSVWriter.o $(OBJDIR)/XMLReader.o $(OBJDIR)/XMLWriter.o $(OBJDIR)/StringUtils.o -o bin/findroute -lexpat lib/libcsv.a
-
+bin/findroute: $(OBJDIR)/main.o $(OBJDIR)/MapRouter.o $(OBJDIR)/CSVReader.o $(OBJDIR)/CSVWriter.o $(OBJDIR)/XMLReader.o $(OBJDIR)/XMLWriter.o $(OBJDIR)/StringUtils.o include/XMLEntity.h
+	$(CXX) $(CXXFLAGS) $(OBJDIR)/main.o $(OBJDIR)/MapRouter.o $(OBJDIR)/CSVReader.o $(OBJDIR)/CSVWriter.o $(OBJDIR)/XMLReader.o $(OBJDIR)/XMLWriter.o $(OBJDIR)/StringUtils.o -o bin/findroute -lexpat lib/libcsv.a
 
 $(OBJDIR)/main.o: $(SRCDIR)/main.cpp  $(INCLUDEDIR)/MapRouter.h $(INCLUDEDIR)/CSVReader.h $(INCLUDEDIR)/CSVWriter.h $(INCLUDEDIR)/XMLReader.h $(INCLUDEDIR)/XMLWriter.h $(INCLUDEDIR)/XMLEntity.h $(INCLUDEDIR)/StringUtils.h
 	$(CXX) $(CXXFLAGS) -c $(SRCDIR)/main.cpp -o $(OBJDIR)/main.o 

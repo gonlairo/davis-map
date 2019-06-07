@@ -52,14 +52,11 @@ bool CMapRouter::LoadMapAndRoutes(std::istream &osm, std::istream &stops, std::i
 {
     CXMLReader OsmReader(osm);
     SXMLEntity OsmEnt;
-    
-
     OsmReader.ReadEntity(OsmEnt, true);
     if ((OsmEnt.DType != SXMLEntity::EType::StartElement) or (OsmEnt.DNameData != "osm"))
     {
         return false;
     }
-
     while (!OsmReader.End())
     {
         OsmReader.ReadEntity(OsmEnt, true);
@@ -188,58 +185,58 @@ bool CMapRouter::LoadMapAndRoutes(std::istream &osm, std::istream &stops, std::i
         MBusRoutes[BusName].push_back(stopid);
     }
     
-    for(auto kv : MBusRoutes)
-    {
-        auto Vstops = kv.second;
-        std::vector< TNodeID > temppath;
+    // for(auto kv : MBusRoutes)
+    // {
+    //     auto Vstops = kv.second;
+    //     std::vector< TNodeID > temppath;
 
-        for(int i = 0; i < Vstops.size() - 1; i++)
-        {
-            TNodeID start = MTStopNodeIds[Vstops[i]];
-            TNodeID dest = MTStopNodeIds[Vstops[i+1]];
-            std::cout << "start: " << start << std::endl;
-            std::cout << "end: " << dest << std::endl;
-            auto fastest = dijkstras(start, dest, temppath, 2);
-            BusEdgeInfo temp;
-            temp.time = fastest + 1.0/120.0;
-            temp.path = temppath;
-            temp.RouteNames.push_back(kv.first);
-            print_vector_string(temp.RouteNames);
+    //     for(int i = 0; i < Vstops.size() - 1; i++)
+    //     {
+    //         TNodeID start = MTStopNodeIds[Vstops[i]];
+    //         TNodeID dest = MTStopNodeIds[Vstops[i+1]];
+    //         std::cout << "start: " << start << std::endl;
+    //         std::cout << "end: " << dest << std::endl;
+    //         auto fastest = dijkstras(start, dest, temppath, 2);
+    //         BusEdgeInfo temp;
+    //         temp.time = fastest + 1.0/120.0;
+    //         temp.path = temppath;
+    //         temp.RouteNames.push_back(kv.first);
+    //         print_vector_string(temp.RouteNames);
             
-            double distance;
-            for (int i = 0; i < temppath.size(); i++)
-            {
-                int index = MNodeIds[temppath[i]];
-                int index_next = MNodeIds[temppath[i + 1]];
-                auto edges = VNodes[index].vedges;
-                for (int j = 0; j < edges.size(); j++)
-                {
-                    if (edges[j].nodeid == VNodes[index_next].NodeID)
-                    {
-                        distance += edges[j].distance;
+    //         double distance;
+    //         for (int i = 0; i < temppath.size(); i++)
+    //         {
+    //             int index = MNodeIds[temppath[i]];
+    //             int index_next = MNodeIds[temppath[i + 1]];
+    //             auto edges = VNodes[index].vedges;
+    //             for (int j = 0; j < edges.size(); j++)
+    //             {
+    //                 if (edges[j].nodeid == VNodes[index_next].NodeID)
+    //                 {
+    //                     distance += edges[j].distance;
                         
-                    }
-                }
-            }
+    //                 }
+    //             }
+    //         }
             
-            temp.distance = distance;
-            MStopSteps[std::make_tuple(start, dest)] = temp;
-        }
-    }
+    //         temp.distance = distance;
+    //         MStopSteps[std::make_tuple(start, dest)] = temp;
+    //     }
+    // }
 
-    for(auto kv : MStopSteps){
-        auto first = kv.first;
-        BusEdgeInfo second = kv.second;
-        TNodeID startid = std::get<0>(first);
-        Edge busedge;
+    // for(auto kv : MStopSteps){
+    //     auto first = kv.first;
+    //     BusEdgeInfo second = kv.second;
+    //     TNodeID startid = std::get<0>(first);
+    //     Edge busedge;
 
-        busedge.nodeid = std::get<1>(first);
-        busedge.nodeindex = MNodeIds[std::get<1>(first)];
-        busedge.distance = second.distance;
-        busedge.time = second.time;
-        busedge.busedge = true;
-        VNodes[MNodeIds[startid]].vedges.push_back(busedge);
-    }
+    //     busedge.nodeid = std::get<1>(first);
+    //     busedge.nodeindex = MNodeIds[std::get<1>(first)];
+    //     busedge.distance = second.distance;
+    //     busedge.time = second.time;
+    //     busedge.busedge = true;
+    //     VNodes[MNodeIds[startid]].vedges.push_back(busedge);
+    // }
 
     return true;
 }

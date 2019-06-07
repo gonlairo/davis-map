@@ -5,19 +5,6 @@
 #include <istream>
 #include <queue>
 
-void print_queue(std::queue<SXMLEntity> queue)
-{
-    std::cout << "**START QUEUE**" << std::endl;
-    while (!queue.empty())
-    {
-        for (auto attr : queue.front().DAttributes)
-        {
-            std::cout << std::get<0>(attr) << "=" << std::get<1>(attr) << " / " <<  queue.front().DNameData << std::endl;
-        }
-        queue.pop();
-    }
-    std::cout << "**END QUEUE**" << std::endl;
-}
 
 CXMLReader::CXMLReader(std::istream &in) : XInput(in)
 {
@@ -49,13 +36,9 @@ bool CXMLReader::ReadEntity(SXMLEntity &entity, bool skipcdata)
 
     if (!XQueue.empty())
     {
-        // bool x = XQueue.front().DType == SXMLEntity::EType::CharData;
-        //std::cout << x <<  std::endl;
         while(skipcdata == true && !XQueue.empty() && XQueue.front().DType == SXMLEntity::EType::CharData)
         {
-            //std::cout << "pop" << std::endl;
             XQueue.pop();
-
         }
 
         entity = XQueue.front();
