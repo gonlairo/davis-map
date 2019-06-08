@@ -422,57 +422,65 @@ std::string deg_to_DMS(double degrees)
 
 }
 
-bool CMapRouter::GetPathDescription(const std::vector< TPathStep > &path, std::vector< std::string > &desc) const
-{
-    auto start = path[0].second;
-    auto start_index = MNodeIds.at(start);
-    auto start_node = VNodes[start_index];
 
-    auto dirA = direction(start_node.location.first);
-    auto dirB = direction(start_node.location.second);
-    auto locA = deg_to_DMS(start_node.location.first);
-    auto locB = deg_to_DMS(start_node.location.second);
+// bool CMapRouter::GetPathDescription(const std::vector< TPathStep > &path, std::vector< std::string > &desc) const
+// {
+//     auto start = path[0].second;
+//     auto start_index = MNodeIds.at(start);
+//     auto start_node = VNodes[start_index];
 
-    std::string sstart = "Start at " + locA + " " + dirA + ", " + locB + " " + dirB;
-    desc.push_back(sstart);
+//     auto dirA = direction(start_node.location.first);
+//     auto dirB = direction(start_node.location.second);
+//     auto locA = deg_to_DMS(start_node.location.first);
+//     auto locB = deg_to_DMS(start_node.location.second);
 
-    for (int i = 1; i < path.size(); i++)
-    {
-        auto start = path[i].second;
-        auto start_index = MNodeIds.at(start);
-        auto start_node = VNodes[start_index];
-        auto next = path[i + 1].second;
-        auto next_index = MNodeIds.at(next);
-        auto next_node = VNodes[next_index];
+//     std::string sstart = "Start at " + locA + " " + dirA + ", " + locB + " " + dirB;
+//     desc.push_back(sstart);
 
-        auto bearing = CalculateBearing(start_node.location.first, start_node.location.second,
-                                        next_node.location.first, next_node.location.second);
+//     for (int i = 1; i < path.size(); i++) //does this need to be -1
+//     {
+//         auto start = path[i].second;
+//         auto start_index = MNodeIds.at(start);
+//         auto start_node = VNodes[start_index];
+//         auto next = path[i + 1].second;
+//         auto next_index = MNodeIds.at(next);
+//         auto next_node = VNodes[next_index];
 
-        auto dir = deg_to_DMS(bearing);
+//         auto bearing = CalculateBearing(start_node.location.first, start_node.location.second,
+//                                         next_node.location.first, next_node.location.second);
 
-        std::cout << "hey" << std::endl;
-        if(path[i].first == "Walk")
-        {
-            auto dirA = direction(next_node.location.first);
-            auto dirB = direction(next_node.location.second);
-            std::string start = "Walk " + dir + " to "  + locA + " " + dirA + ", " + locB + " " + dirB;
-            desc.push_back(start);
-        }
-        else
-        {
-            continue;
-        }
-        std::string ret;
-        // std::cout << "sssize: " << v.size() << std::endl;
-        
-        for (int i = 0; i < desc.size(); i++)
-        {
-            std::cout << desc[i] << " ";
-        }
+//         auto curdir = direction(bearing); //changed
 
-        std::cout << std::endl;
-    }
-}
+//         if(path[i].first == "Walk")
+//         {
+//             auto dirA = direction(next_node.location.first);
+//             auto dirB = direction(next_node.location.second);
+//             auto locA = deg_to_DMS(next_node.location.first);
+//             auto locB = deg_to_DMS(next_node.location.second);
+//             std::string tempdesc = "Walk " + curdir + " to "  + locA + " " + dirA + ", " + locB + " " + dirB;
+//             desc.push_back(tempdesc);
+//         }
+//         else
+//         {
+//             auto curinfo = StringUtils::Split(" ", path[i].first)
+//             auto curbus = curinfo[1];
+
+//             if(path[i+1].first == "Walk"){
+//                 std::string tempdesc = "Take" + path[i].first + "and get off at" + std::to_string(MTNodeStopIds[next_node.NodeID]);
+//                 desc.push_back(tempdesc);
+//             }
+//             else{
+//                 nextbus = path[i+1].first.substr(4,5)
+//                 if(curbus == nextbus){
+//                     i++;
+//                 }
+//                 else{
+//                     std::string tempdesc = "Take" + path[i].first + "and get off at" + MTNodeStopIds[next_node.NodeID];
+//                     desc.push_back(tempdesc);
+//                 }
+//             }
+//     }
+// }
 
 
 
