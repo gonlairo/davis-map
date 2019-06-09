@@ -50,6 +50,7 @@ int main(int argc, char *argv[])
             CMapRouter MapRouter;
             MapRouter.LoadMapAndRoutes(osm, stops, routes);
             auto vstr = StringUtils::Split(InputLine, " ");
+             
             //for(auto x : vstr) std::cout << x << std::endl;
             
 
@@ -67,21 +68,75 @@ int main(int argc, char *argv[])
             }
 
             else if (vstr[0] == "fastest")
-            {
+            {   
+                auto lastcalculated = vstr; //make copy of last calculated 
                 auto startid = std::stoul(vstr[1]);
                 auto endid = std::stoul(vstr[2]);
                 std::vector <CMapRouter::TPathStep> path;
                 auto fastest_time = MapRouter.FindFastestPath(startid, endid, path);
+                lastcalculated.push_back(std::to_string(fastest_time);
                 std::cout << "Fastest path takes " << fastest_time << " h/m/s" << std::endl;
             }           
             else if (vstr[0] == "shortest")
-            {
+            {   
+                auto lastcalculated = vstr; //make copy of last calculated
                 auto startid = std::stoul(vstr[1]);
                 auto endid = std::stoul(vstr[2]);
                 std::vector<CMapRouter::TNodeID> path;
                 auto shortest_distance = MapRouter.FindShortestPath(startid, endid, path);
+                lastcalculated.push_back(std::to_string(shortest_distance);
                 std::cout << "Shortest path is " << shortest_distance << "mi" << std::endl;
             }
+            else if (InputLine == "save")
+            {
+                std::string outputfile = vstr[1] + "_" + vstr[2] + "_" + vstr[3] + ".csv";
+                std::ofstream OutFile(outputfile); 
+                CCSVWriter CWrite(OutFile);
+
+                if(lastcalculated[0] == fastest)
+                {
+                    std::vector<std::string> header = {"mode", "node_id"};
+                    CWrite.WriteRow(header);
+
+                    std::vector<std::string> temp;
+                    for(auto pair : path)
+                    {   
+                        temp.push_back(std::to_string(std::get<0>(pair));
+                        auto temp_id = VNodes[std::get<1>(pair)].NodeID;
+                        temp.push_back(std::to_string(temp_id)); 
+                        CWrite.WriteRow(temp);
+                        temp.clear();
+                    }
+                }
+                else
+                { //shortest
+                    std::vector<std::string> header = {"node_id"};
+                    CWrite.WriteRow(header);
+
+                    std::vector<std::string> temp;
+                    for(auto nodeid : path)
+                    {   
+                        temp.push_back(std::to_string(nodeid));
+                        CWrite.WriteRow(temp);
+                        temp.clear();
+                    }
+
+                }
+                
+            }
+            else if (InputLine == "print")
+            {
+                std::vector< std::string > desc;
+                MapRouter.GetPathDescription(path, desc);
+                for(int i = 0; i < desc.size(); i++)
+                {
+                    std::cout << desc[i] << std::endl;
+                }     
+            }
+            else{
+                std::cout << "Invalid Input" << std::endl;
+            }
+
         }    
     }
 }
