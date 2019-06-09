@@ -216,14 +216,12 @@ bool CMapRouter::LoadMapAndRoutes(std::istream &osm, std::istream &stops, std::i
             {
                 TNodeID start = MTStopNodeIds[Vstops[i]];
                 TNodeID dest = MTStopNodeIds[Vstops[i+1]];
-                //std::cout << "start!: " << start << std::endl;
-                //std::cout << "end!: " << dest << std::endl;
                 auto fastest = dijkstras(start, dest, temppath, 2);
-                //std::cout << "end: " << dest << std::endl;
                 BusEdgeInfo temp;
                 temp.time = fastest + 1.0/120.0;
                 temp.path = temppath;
                 temp.RouteNames.push_back(kv.first);
+                std::sort(temp.RouteNames.begin(), temp.RouteNames.end());
 
                 double distance;
                 for (int z = 0; z < temppath.size(); z++)
@@ -322,356 +320,392 @@ std::vector<std::string> intersection(std::vector<std::string> &v1,std::vector<s
     return v3;
 }
 
+std::vector<CMapRouter::TNodeID> CMapRouter::unique_vector(std::vector<CMapRouter::TNodeID> &v)
+{
+    std::sort(v.begin(), v.end());
+    auto last = std::unique(v.begin(), v.end());
+    v.erase(last, v.end());
+
+    return v;
+}
+ // 1 1 2 2 3 3 3 4 4 5 5 6 7
+
+// v now holds {1 2 3 4 5 6 7 x x x x x x}, where 'x' is indeterminate
+
+
 double CMapRouter::FindFastestPath(TNodeID src, TNodeID dest, std::vector< TPathStep > &path)
 {
     std::vector <TNodeID> route;
     auto fastest = dijkstras(src, dest, route, 1); 
+    
+    
+    
     std::vector<TNodeID> exppath;
-    std::vector<std::tuple<TNodeID, TNodeID>> tempvect;
+    std::vector <TNodeID> tempvect;
+    std::vector<std::vector<std::string>> tvectintersect;
+    std::string BusName;
+    TNodeID start;
+    TNodeID next;
 
-    exppath.push_back(route[0]);
-    for (int i = 0; i < route.size() -1 ; i++)
+    path.push_back(std::make_pair("Walk", route[0]));
+    for (int i = 0; i < route.size(); i++)
     {
-        auto start = route[i];
-        auto next = route[i + 1];
+        start = route[i];
+        std::cout << "start: " << start << std::endl;
+        if (i < route.size() - 1)
+        {
+            next = route[i + 1];
+            std::cout << "next: " << next << std::endl;
+        }                        
 
         if (MStopSteps.end() != MStopSteps.find(std::make_tuple(start, next)))
         {
-            auto inside_path = MStopSteps[(std::make_tuple(start, next))].path;
-            for (int j = 1; j < inside_path.size(); j++)
-            {
-                exppath.push_back(inside_path[j]);
+            auto v1routes = MStopSteps[(std::make_tuple(start, next))].RouteNames;
+            auto v1path = MStopSteps[(std::make_tuple(start, next))].path;
+
+            ++i;
+            start = route[i];
+            next = route[i + 1];
+            
+            if (MStopSteps.end() != MStopSteps.find(std::make_tuple(start, next))) // it is a bus stop
+            {                
+                auto v2routes = MStopSteps[(std::make_tuple(start, next))].RouteNames;
+                auto v2path = MStopSteps[(std::make_tuple(start, next))].path;
+                auto intersect = intersection(v1routes, v2routes);
+
+                if (!intersect.empty())
+                {
+                    while (!intersect.empty()) // two buses coincide
+                    {
+                        tvectintersect.push_back(intersect);
+                        auto prev = route[i - 1];
+                        tempvect.push_back(prev);
+                        tempvect.push_back(start);
+                        tempvect.push_back(next);
+
+                        ++i;
+                        start = route[i];
+                        next = route[i + 1];
+                        v2routes = MStopSteps[(std::make_tuple(start, next))].RouteNames;
+                        intersect = intersection(intersect, v2routes);
+                    }
+
+                    BusName = "Bus " + tvectintersect.back()[0];
+                    auto vunique = unique_vector(tempvect);
+                    for (int k = 0; k < vunique.size() - 1; k++)
+                    {
+                        auto inside_path = MStopSteps[(std::make_tuple(vunique[k], vunique[k + 1]))].path;
+                        print_vector(inside_path);
+                        
+                        for (int t = 1; t < inside_path.size(); t++)
+                        {
+                            path.push_back(std::make_pair(BusName, inside_path[t]));
+                        }                       
+                    }
+                }
+                else // intersect is empty: two different buses!
+                {
+                    BusName = "Bus " + v1routes[0]; // asumming they are sorted
+                    for (int j = 0; j < v1path.size(); j++)
+                    {
+                        path.push_back(std::make_pair(BusName, v1path[j]));
+                    }
+
+                    BusName += "Bus " + v2routes[0];
+                    for (int j = 0; j < v2path.size(); j++)
+                    {
+                        path.push_back(std::make_pair(BusName, v2path[j]));
+                    }
+                }
             }
-        }
-        else
-        {
-            exppath.push_back(next);
-        }
-    }
-
-    print_vector(exppath);
-
-
-    path.push_back(std::make_pair("Walk", route[0]));
-    for (int i = 0; i < exppath.size() - 2; i++)
-    {
-        auto start = exppath[i];
-        auto second = exppath[i + 1];
-        auto third = exppath[i + 2];
-        std::cout << "start: " << start << std::endl;
-        std::cout << "second: " << second << std::endl;
-        std::cout << "third: " << third << std::endl;
-
-        if (MStopSteps.end() != MStopSteps.find(std::make_tuple(start, second)))
-        {
-            std::cout << __LINE__ << std::endl;
-            auto v1 = MStopSteps[(std::make_tuple(start, second))].RouteNames;
-            if (MStopSteps.end() == MStopSteps.find(std::make_tuple(second, third)))
+            else // it is not a bus stop
             {
-                std::cout << __LINE__ << std::endl;
-                std::sort(v1.begin(), v1.begin());
-                auto name = "Bus " + v1[0];
-                auto inside_path = MStopSteps[(std::make_tuple(start, second))].path;
+                std::sort(v1routes.begin(), v1routes.end());
+                auto name = "Bus " + v1routes[0];
+                auto inside_path = MStopSteps[(std::make_tuple(start, next))].path;
                 for (int j = 1; j < inside_path.size(); j++)
                 {
                     path.push_back(std::make_pair(name, inside_path[j]));
                 }
             }
-            else if (MStopSteps.end() != MStopSteps.find(std::make_tuple(second, third)))
-            {
-                std::cout << __LINE__ << std::endl;
-                auto v2 = MStopSteps[(std::make_tuple(second, third))].RouteNames;
-                auto intersect = intersection(v1, v2);
-                if (intersect.empty())
-                {
-                    std::cout << __LINE__ << std::endl;
-                    auto name = "Bus " + v1[0];
-                    auto inside_path = MStopSteps[(std::make_tuple(start, second))].path;
-                    for (int j = 1; j < inside_path.size(); j++)
-                    {
-                        path.push_back(std::make_pair(name, inside_path[j]));
-                    
-                    }
-
-                    ++i;
-                }
-                else
-                {
-                    std::cout << __LINE__ << std::endl;
-                    tempvect.push_back(std::make_tuple(start, second));
-                    tempvect.push_back(std::make_tuple(second, third));
-                    std::vector<std::vector<std::string>> tempintersect;
-                    i += 2;
-                    start = exppath[i];
-                    second = exppath[i + 1];
-                    std::cout << "start: " << start << std::endl;
-                    std::cout << "second: " << second << std::endl;
-                    auto next = MStopSteps[(std::make_tuple(start, second))].RouteNames;
-                    intersect = intersection(intersect, next);
-                    std::cout << __LINE__ << std::endl;
-                    while (!intersect.empty() && (MStopSteps.end() != MStopSteps.find(std::make_tuple(start, second))))
-                    {
-                        std::cout << __LINE__ << std::endl;
-                        i++;
-                        start = exppath[i];
-                        second = exppath[i + 1];
-                        tempvect.push_back(std::make_tuple(start, second));
-                        auto next = MStopSteps[(std::make_tuple(start, second))].RouteNames;
-                        intersect = intersection(intersect, next);
-                        if (!intersect.empty())
-                        {
-                            tempintersect.push_back(intersect);
-                        }
-                    }
-                    
-                    print_vector_vector(tempintersect);
-                    
-                    for (auto el : tempvect)
-                    {
-                        std::cout << "T: " << std::get<0>(el) << " " << std::get<1>(el) << std::endl;
-                    }
-                    
-                    std::cout << __LINE__ << std::endl;
-                    auto name = "Bus ";
-                    std::cout << "Name: " << name << std::endl;
-                    for (int j = 0; j < tempvect.size() - 1; j++) // check indices
-                    {
-                        auto ipath = MStopSteps[tempvect[j]].path;
-                        for (int z = 0; z < ipath.size(); z++)
-                        {
-                            path.push_back(std::make_pair(name, ipath[z]));
-                        }
-                    }
-                }
-            }
-        }
+        }   
         else
         {
-            std::cout << __LINE__ << std::endl;
-            path.push_back(std::make_pair("Walk", third));
+            if (i == route.size() - 1) // if we are at the end push the START
+            {
+                path.push_back(std::make_pair("Walk", start));
+            }
+            else
+            {
+                path.push_back(std::make_pair("Walk", next));
+            }
         }
+
     }
 
-    for (auto el : path)
-    {
-        std::cout << "HERE: " << el.first << " " << el.second << std::endl;
-    }
 
-    return fastest;
+        for (auto el : path)
+        {
+            std::cout << el.first << " " << el.second << std::endl;
+        }
+
+        return fastest;
 }
 
-        // std::string direction(double degrees)
-        // {
-        //     if (degrees > 0 && degrees < 180)
-        //     {
-        //         return "E";
-        //     }
-        //     else if (degrees > 180 && degrees < 360)
-        //     {
-        //         return "W";
-        //     }
-        //     else if (degrees == 90 && degrees == 360)
-        //     {
-        //         return "N";
-        //     }
-        //     else if (degrees == 180)
-        //     {
-        //         return "S";
-        //     }
-        // }
+std::string direction(double degrees)
+{
+    if (degrees >= -22.5 && degrees < 27.5)
+    {
+        return "N";
+    }
+    else if (degrees >= 27.5 && degrees < 67.5)
+    {
+        return "NE";
+    }
+    else if (degrees >= 67.5 && degrees < 112.5)
+    {
+        return "E";
+    }
+    else if (degrees >= 112.5 && degrees < 157.5)
+    {
+        return "SE";
+    }
+    else if (degrees >= 157.5 && degrees < -157.5)
+    {
+        return "S";
+    }
+    else if (degrees >= -157.5 && degrees < -112.5)
+    {
+        return "SW";
+    }
+    else if (degrees >= -112.5 && degrees < -67.5)
+    {
+        return "W";
+    }
+    else if (degrees >= -67.5 && degrees < -22.5)
+    {
+        return "NW";
+    }
+    else
+    {
+        return "S";
+    }
+}
 
-        // std::string deg_to_DMS(double degrees)
-        // {
-        //     
-        //     std::string ddeg = std::to_string(degrees);
-        //     std::vector<std::string> temp = StringUtils::Split(".", ddeg);
-        //     std::string deg = temp[0] + 'd';
-        //     std::string min = std::to_string(std::stoul(temp[1])*60.0) + "\'";
-        //     temp = StringUtils::Split(".", min);
-        //     std::string sec = std::to_string(std::stoul(temp[1])*60.0) + "\"";
+std::string deg_to_DMS(double degrees)
+{
+    std::string ddeg = std::to_string(degrees);
+    std::vector<std::string> temp = StringUtils::Split(".", ddeg);
+    std::string deg = temp[0] + 'd';
+    std::cout << deg << std::endl;
+    std::string min = std::to_string(std::stoul(temp[1])*60.0) + "\'";
+    std::cout << min << std::endl;
+    temp = StringUtils::Split(".", min);
+    std::string sec = std::to_string(std::stoul(temp[1])*60.0) + "\"";
+    std::cout << sec << std::endl;
+    return deg + min + sec;
 
-        //     return deg + min + sec;
+}
 
-        // }
+bool CMapRouter::GetPathDescription(const std::vector< TPathStep > &path, std::vector< std::string > &desc) const
+{
+    TNodeID start = path[0].second;
+    TNodeIndex start_index = MNodeIds.at(start);
+    Node start_node = VNodes[start_index];
 
-        bool CMapRouter::GetPathDescription(const std::vector<TPathStep> &path, std::vector<std::string> &desc) const
-        {
-            //     auto start = path[0].second;
-            //     auto start_index = MNodeIds.at(start);
-            //     auto start_node = VNodes[start_index];
+    std::string dirA = direction(start_node.location.first);
+    std::string dirB = direction(start_node.location.second);
+    std::string locA = deg_to_DMS(start_node.location.first);
+    std::string locB = deg_to_DMS(start_node.location.second);
 
-            //     auto dirA = direction(start_node.location.first);
-            //     auto dirB = direction(start_node.location.second);
-            //     auto locA = deg_to_DMS(start_node.location.first);
-            //     auto locB = deg_to_DMS(start_node.location.second);
+    std::string sstart = "Start at " + locA + " " + dirA + ", " + locB + " " + dirB;
+    desc.push_back(sstart);
 
-            //     std::string sstart = "Start at " + locA + " " + dirA + ", " + locB + " " + dirB;
-            //     desc.push_back(sstart);
+    std::string nextbus;
 
-            //     for (int i = 1; i < path.size(); i++) //does this need to be -1
-            //     {
-            //         auto start = path[i].second;
-            //         auto start_index = MNodeIds.at(start);
-            //         auto start_node = VNodes[start_index];
-            //         auto next = path[i + 1].second;
-            //         auto next_index = MNodeIds.at(next);
-            //         auto next_node = VNodes[next_index];
+    for (int i = 1; i < path.size() -1 ; i++) 
+    {
+        TNodeID cur = path[i].second;
+        TNodeIndex cur_index = MNodeIds.at(cur);
+        Node cur_node = VNodes[cur_index];
+        TNodeID next = path[i + 1].second;
+        TNodeIndex next_index = MNodeIds.at(next);
+        Node next_node = VNodes[next_index];
 
-            //         auto bearing = CalculateBearing(start_node.location.first, start_node.location.second,
-            //                                         next_node.location.first, next_node.location.second);
+        double bearing = CalculateBearing(cur_node.location.first, cur_node.location.second,
+                                        next_node.location.first, next_node.location.second);
 
-            //         auto curdir = direction(bearing); //changed
+        std::string curdir = direction(bearing); 
 
-            //         if(path[i].first == "Walk")
-            //         {
-            //             auto dirA = direction(next_node.location.first);
-            //             auto dirB = direction(next_node.location.second);
-            //             auto locA = deg_to_DMS(next_node.location.first);
-            //             auto locB = deg_to_DMS(next_node.location.second);
-            //             std::string tempdesc = "Walk " + curdir + " to "  + locA + " " + dirA + ", " + locB + " " + dirB;
-            //             desc.push_back(tempdesc);
-            //         }
-            //         else
-            //         {
-            //             auto curinfo = StringUtils::Split(" ", path[i].first)
-            //             auto curbus = curinfo[1];
+        if(path[i].first == "Walk")
+        {
+            std::string tempdirA = direction(next_node.location.first);
+            std::string tempdirB = direction(next_node.location.second);
+            std::string templocA = deg_to_DMS(next_node.location.first);
+            std::string templocB = deg_to_DMS(next_node.location.second);
+            std::string tempdesc = "Walk " + curdir + " to "  + templocA + " " + tempdirA + ", " + templocB + " " + tempdirB;
+            desc.push_back(tempdesc);
+        }
+        else
+        {
+            auto curinfo = StringUtils::Split(" ", path[i].first);
+            auto curbus = curinfo[1];
 
-            //             if(path[i+1].first == "Walk"){
-            //                 std::string tempdesc = "Take" + path[i].first + "and get off at" + std::to_string(MTNodeStopIds[next_node.NodeID]);
-            //                 desc.push_back(tempdesc);
-            //             }
-            //             else{
-            //                 nextbus = path[i+1].first.substr(4,5)
-            //                 if(curbus == nextbus){
-            //                     i++;
-            //                 }
-            //                 else{
-            //                     std::string tempdesc = "Take" + path[i].first + "and get off at" + MTNodeStopIds[next_node.NodeID];
-            //                     desc.push_back(tempdesc);
-            //                 }
-            //             }
-            //     }
-        }
-
-        double CMapRouter::dijkstras(TNodeID src, TNodeID dest, std::vector<TNodeID> & path, int method)
-        {
-            //std::cout << __LINE__ << std::endl;
-            const int infinity = std::numeric_limits<int>::max();
-            TNodeIndex src_index = MNodeIds[src];
-            TNodeIndex dest_index = MNodeIds[dest];
-
-            typedef std::pair<double, TNodeIndex> npair; // pair of weight / TNodeIndex
-            std::priority_queue<npair, std::vector<npair>, std::greater<npair>> pq;
-
-            std::vector<double> dist(VNodes.size(), infinity);
-            std::vector<TNodeIndex> prev(VNodes.size());
-            std::vector<bool> visited(VNodes.size(), false);
-
-            pq.push(std::make_pair(0, src_index));
-            dist[src_index] = 0;
-            prev[src_index] = src_index;
-
-            while (!pq.empty())
+            if(path[i+1].first == "Walk")
             {
-                TNodeIndex current_index = pq.top().second;
-                pq.pop();
-                if (visited[current_index])
+                std::string tempdesc = "Take" + path[i].first + "and get off at" + std::to_string(MTNodeStopIds[next_node.NodeID]);
+                desc.push_back(tempdesc);
+            }
+            else
+            {
+                nextbus = path[i+1].first.substr(4,5);
+                if(curbus == nextbus)
                 {
-                    continue;
-                }
-                visited[current_index] = true;
-
-                if (current_index == dest_index)
-                    break;
-
-                for (auto edge : VNodes[current_index].vedges)
+                    i++;
+                }
+                else
                 {
-                    double altdist = dist[current_index] + (method == 1 ? edge.time : (method == 0 ? edge.distance : edge.distance / edge.speed));
-                    if (altdist < dist[edge.nodeindex])
-                    {
-                        dist[edge.nodeindex] = altdist;
-                        prev[edge.nodeindex] = current_index;
-                        pq.push(std::make_pair(altdist, edge.nodeindex));
-                    }
-                }
-            }
+                    std::string tempdesc = "Take" + path[i].first + "and get off at" + std::to_string(MTNodeStopIds[next_node.NodeID]);
+                    desc.push_back(tempdesc);
+                }
+            }
+        }
+    }
 
-            if (dist[dest_index] == infinity)
-            {
-                std::cout << "bad" << std::endl;
-                exit(0);
-            }
+    auto end = path[path.size()-1].second;
+    auto end_index = MNodeIds.at(end);
+    auto end_node = VNodes[end_index];
 
-            path.clear();
-            TNodeIndex Dindex = dest_index;
-            path.insert(path.begin(), VNodes[Dindex].NodeID);
+    auto enddirA = direction(end_node.location.first);
+    auto enddirB = direction(end_node.location.second);
+    auto endlocA = deg_to_DMS(end_node.location.first);
+    auto endlocB = deg_to_DMS(end_node.location.second);
 
-            while (Dindex != src_index)
-            {
-                path.insert(path.begin(), VNodes[prev[Dindex]].NodeID);
-                Dindex = prev[Dindex];
-            }
+    std::string endd = "End at " + endlocA + " " + enddirA + ", " + endlocB + " " + enddirB;
+    desc.push_back(endd);
 
-            return dist[dest_index];
-        }
+    return true;
+}
 
-        void CMapRouter::print_vector(std::vector<TStopID> v)
+double CMapRouter::dijkstras(TNodeID src, TNodeID dest, std::vector<TNodeID> & path, int method)
+    {
+        //std::cout << __LINE__ << std::endl;
+        const int infinity = std::numeric_limits<int>::max();
+        TNodeIndex src_index = MNodeIds[src];
+        TNodeIndex dest_index = MNodeIds[dest];
+
+        typedef std::pair<double, TNodeIndex> npair; // pair of weight / TNodeIndex
+        std::priority_queue<npair, std::vector<npair>, std::greater<npair>> pq;
+
+        std::vector<double> dist(VNodes.size(), infinity);
+        std::vector<TNodeIndex> prev(VNodes.size());
+        std::vector<bool> visited(VNodes.size(), false);
+
+        pq.push(std::make_pair(0, src_index));
+        dist[src_index] = 0;
+        prev[src_index] = src_index;
+
+        while (!pq.empty())
         {
-            std::string ret;
-            // std::cout << "sssize: " << v.size() << std::endl;
-            for (int i = 0; i < v.size(); i++)
+            TNodeIndex current_index = pq.top().second;
+            pq.pop();
+            if (visited[current_index])
             {
-                std::cout << v[i] << " ";
+                continue;
             }
+            visited[current_index] = true;
 
-            std::cout << std::endl;
-        }
-        void CMapRouter::print_vector_double(std::vector<double> v)
-        {
-            std::string ret;
-            // std::cout << "sssize: " << v.size() << std::endl;
-            for (int i = 0; i < v.size(); i++)
+            if (current_index == dest_index)
+                break;
+
+            for (auto edge : VNodes[current_index].vedges)
             {
-                std::cout << v[i] << " ";
-            }
-
-            std::cout << std::endl;
-        }
-
-        void CMapRouter::print_vector_string(std::vector<std::string> v)
-        {
-            std::string ret;
-            // std::cout << "sssize: " << v.size() << std::endl;
-            for (int i = 0; i < v.size(); i++)
-            {
-                std::cout << v[i] << " ";
-            }
-
-            std::cout << std::endl;
-        }
-
-        void CMapRouter::print_vector_bool(std::vector<bool> v)
-        {
-            std::string ret;
-            // std::cout << "sssize: " << v.size() << std::endl;
-            for (int i = 0; i < v.size(); i++)
-            {
-                std::cout << v[i] << " ";
-            }
-
-            std::cout << std::endl;
-        }
-        void CMapRouter::print_vector_vector(std::vector<std::vector<std::string>> v)
-        {
-            std::string ret;
-            for (auto el : v)
-            {
-                for (int i = 0; i < el.size(); i++)
+                double altdist = dist[current_index] + (method == 1 ? edge.time : (method == 0 ? edge.distance : edge.distance / edge.speed));
+                if (altdist < dist[edge.nodeindex])
                 {
-                    std::cout << el[i] << " cccc";
+                    dist[edge.nodeindex] = altdist;
+                    prev[edge.nodeindex] = current_index;
+                    pq.push(std::make_pair(altdist, edge.nodeindex));
                 }
-
-                std::cout << "//" << std::endl;
             }
-            std::cout << std::endl;
         }
+
+        if (dist[dest_index] == infinity)
+        {
+            std::cout << "bad" << std::endl;
+            exit(0);
+        }
+
+        path.clear();
+        TNodeIndex Dindex = dest_index;
+        path.insert(path.begin(), VNodes[Dindex].NodeID);
+
+        while (Dindex != src_index)
+        {
+            path.insert(path.begin(), VNodes[prev[Dindex]].NodeID);
+            Dindex = prev[Dindex];
+        }
+
+        return dist[dest_index];
+    }
+
+    void CMapRouter::print_vector(std::vector<TStopID> v)
+    {
+        std::string ret;
+        // std::cout << "sssize: " << v.size() << std::endl;
+        for (int i = 0; i < v.size(); i++)
+        {
+            std::cout << v[i] << " ";
+        }
+
+        std::cout << std::endl;
+    }
+    void CMapRouter::print_vector_double(std::vector<double> v)
+    {
+        std::string ret;
+        // std::cout << "sssize: " << v.size() << std::endl;
+        for (int i = 0; i < v.size(); i++)
+        {
+            std::cout << v[i] << " ";
+        }
+
+        std::cout << std::endl;
+    }
+
+    void CMapRouter::print_vector_string(std::vector<std::string> v)
+    {
+        std::string ret;
+        // std::cout << "sssize: " << v.size() << std::endl;
+        for (int i = 0; i < v.size(); i++)
+        {
+            std::cout << v[i] << " ";
+        }
+
+        std::cout << std::endl;
+    }
+
+    void CMapRouter::print_vector_bool(std::vector<bool> v)
+    {
+        std::string ret;
+        // std::cout << "sssize: " << v.size() << std::endl;
+        for (int i = 0; i < v.size(); i++)
+        {
+            std::cout << v[i] << " ";
+        }
+
+        std::cout << std::endl;
+    }
+    void CMapRouter::print_vector_vector(std::vector<std::vector<std::string>> v)
+    {
+        std::string ret;
+        for (auto el : v)
+        {
+            for (int i = 0; i < el.size(); i++)
+            {
+                std::cout << el[i] << " ";
+            }
+
+            std::cout << "//" << std::endl;
+        }
+        std::cout << std::endl;
+    }
