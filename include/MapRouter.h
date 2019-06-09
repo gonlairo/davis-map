@@ -6,10 +6,7 @@
 #include <map>
 #include <tuple>
 
-// ways: if we cant find a node in a way, just ignore it.
-// important tags: speed / oneway
 
-// nodecount length of the vector
 class CMapRouter{
     public:
         using TNodeID = unsigned long;
@@ -86,12 +83,14 @@ class CMapRouter{
         double FindFastestPath(TNodeID src, TNodeID dest, std::vector< TPathStep > &path);
         double dijkstras(TNodeID src, TNodeID dest, std::vector<TNodeID> &path, int method);
         bool GetPathDescription(const std::vector< TPathStep > &path, std::vector< std::string > &desc) const;
-        
+        std::vector<TNodeID> unique_vector(std::vector<TNodeID> &v);
+
         //delete
         void print_vector(std::vector<TStopID> v);
         void print_vector_double(std::vector<double> v);
         void print_vector_string(std::vector<std::string> v);
         void print_vector_bool(std::vector<bool> v);
+        void print_vector_vector(std::vector<std::vector<std::string>> v);
 };
 
 #endif
