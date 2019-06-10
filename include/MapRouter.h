@@ -46,9 +46,6 @@ class CMapRouter{
             TLocation location;
             std::vector<Edge> vedges;  
             TStopID stop;
-
-            // operator overloading
-            Node &operator=(const Node &node);
         };
 
         std::vector<Node> VNodes;
@@ -84,6 +81,7 @@ class CMapRouter{
         double dijkstras(TNodeID src, TNodeID dest, std::vector<TNodeID> &path, int method);
         bool GetPathDescription(const std::vector< TPathStep > &path, std::vector< std::string > &desc) const;
         std::vector<TNodeID> unique_vector(std::vector<TNodeID> &v);
+        std::vector<TPathStep> ShortestPathToTPathStep(std::vector <TNodeID> vNodeID);
 
         //delete
         void print_vector(std::vector<TStopID> v);

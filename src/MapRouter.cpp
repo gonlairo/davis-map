@@ -12,6 +12,10 @@
 #include <limits>
 #include "StringUtils.h"
 #include <algorithm>
+#include <cmath>
+#include <sstream>
+#include <iomanip>
+#include <math.h>
 
 const CMapRouter::TNodeID CMapRouter::InvalidNodeID = -1;
 
@@ -95,8 +99,7 @@ bool CMapRouter::LoadMapAndRoutes(std::istream &osm, std::istream &stops, std::i
                         if (!MNodeIds.count(id))
                         {
                             OsmReader.ReadEntity(OsmEnt, true);
-                            // std::cout << "id not found: " << id << std::endl;
-                            // std::cout << "name: " << OsmEnt.DNameData << std::endl;
+    
                         }
                         else{
                             int index = MNodeIds[id];
@@ -104,9 +107,6 @@ bool CMapRouter::LoadMapAndRoutes(std::istream &osm, std::istream &stops, std::i
                             TempStorage.push_back(CurrNode);
                             OsmReader.ReadEntity(OsmEnt, true);
                         }
-
-                        
-
 
                     }
                     else if ((OsmEnt.DType == SXMLEntity::EType::StartElement) && OsmEnt.DNameData == "tag")
@@ -138,7 +138,6 @@ bool CMapRouter::LoadMapAndRoutes(std::istream &osm, std::istream &stops, std::i
                     connection.distance = HaversineDistance(TempStorage[i].location.first, TempStorage[i].location.second,
                                                             TempStorage[i + 1].location.first, TempStorage[i + 1].location.second);
 
-                    //std::cout << "distance between " << TempStorage[i].NodeID << " and " << TempStorage[i + 1].NodeID << " is: " << connection.distance << std::endl;
                     connection.time = connection.distance/walking_speed;
                     connection.speed = speedlimit;
                     connection.oneway = oneway;
@@ -328,137 +327,151 @@ std::vector<CMapRouter::TNodeID> CMapRouter::unique_vector(std::vector<CMapRoute
 
     return v;
 }
- // 1 1 2 2 3 3 3 4 4 5 5 6 7
-
-// v now holds {1 2 3 4 5 6 7 x x x x x x}, where 'x' is indeterminate
-
 
 double CMapRouter::FindFastestPath(TNodeID src, TNodeID dest, std::vector< TPathStep > &path)
 {
     std::vector <TNodeID> route;
-    auto fastest = dijkstras(src, dest, route, 1); 
-    
-    
-    
-    std::vector<TNodeID> exppath;
-    std::vector <TNodeID> tempvect;
-    std::vector<std::vector<std::string>> tvectintersect;
-    std::string BusName;
-    TNodeID start;
-    TNodeID next;
+    auto fastest = dijkstras(src, dest, route, 1);
 
     path.push_back(std::make_pair("Walk", route[0]));
-    for (int i = 0; i < route.size(); i++)
+    for (int i = 0; i < route.size() - 1; i++)
     {
-        start = route[i];
-        std::cout << "start: " << start << std::endl;
-        if (i < route.size() - 1)
-        {
-            next = route[i + 1];
-            std::cout << "next: " << next << std::endl;
-        }                        
-
+        TNodeID start = route[i];
+        TNodeID next = route[i + 1];
         if (MStopSteps.end() != MStopSteps.find(std::make_tuple(start, next)))
         {
             auto v1routes = MStopSteps[(std::make_tuple(start, next))].RouteNames;
             auto v1path = MStopSteps[(std::make_tuple(start, next))].path;
-
-            ++i;
-            start = route[i];
-            next = route[i + 1];
-            
-            if (MStopSteps.end() != MStopSteps.find(std::make_tuple(start, next))) // it is a bus stop
-            {                
-                auto v2routes = MStopSteps[(std::make_tuple(start, next))].RouteNames;
-                auto v2path = MStopSteps[(std::make_tuple(start, next))].path;
-                auto intersect = intersection(v1routes, v2routes);
-
-                if (!intersect.empty())
-                {
-                    while (!intersect.empty()) // two buses coincide
-                    {
-                        tvectintersect.push_back(intersect);
-                        auto prev = route[i - 1];
-                        tempvect.push_back(prev);
-                        tempvect.push_back(start);
-                        tempvect.push_back(next);
-
-                        ++i;
-                        start = route[i];
-                        next = route[i + 1];
-                        v2routes = MStopSteps[(std::make_tuple(start, next))].RouteNames;
-                        intersect = intersection(intersect, v2routes);
-                    }
-
-                    BusName = "Bus " + tvectintersect.back()[0];
-                    auto vunique = unique_vector(tempvect);
-                    for (int k = 0; k < vunique.size() - 1; k++)
-                    {
-                        auto inside_path = MStopSteps[(std::make_tuple(vunique[k], vunique[k + 1]))].path;
-                        print_vector(inside_path);
-                        
-                        for (int t = 1; t < inside_path.size(); t++)
-                        {
-                            path.push_back(std::make_pair(BusName, inside_path[t]));
-                        }                       
-                    }
-                }
-                else // intersect is empty: two different buses!
-                {
-                    BusName = "Bus " + v1routes[0]; // asumming they are sorted
-                    for (int j = 0; j < v1path.size(); j++)
-                    {
-                        path.push_back(std::make_pair(BusName, v1path[j]));
-                    }
-
-                    BusName += "Bus " + v2routes[0];
-                    for (int j = 0; j < v2path.size(); j++)
-                    {
-                        path.push_back(std::make_pair(BusName, v2path[j]));
-                    }
-                }
-            }
-            else // it is not a bus stop
+            auto BusName = "Bus " + v1routes[0];
+            for (int k = 1; k < v1path.size(); k++)
             {
-                std::sort(v1routes.begin(), v1routes.end());
-                auto name = "Bus " + v1routes[0];
-                auto inside_path = MStopSteps[(std::make_tuple(start, next))].path;
-                for (int j = 1; j < inside_path.size(); j++)
-                {
-                    path.push_back(std::make_pair(name, inside_path[j]));
-                }
+                path.push_back(std::make_pair(BusName, v1path[k]));
             }
-        }   
+        }
         else
         {
-            if (i == route.size() - 1) // if we are at the end push the START
-            {
-                path.push_back(std::make_pair("Walk", start));
-            }
-            else
-            {
-                path.push_back(std::make_pair("Walk", next));
-            }
+            path.push_back(std::make_pair("Walk", next));
         }
-
     }
 
+    return fastest;
 
-        for (auto el : path)
-        {
-            std::cout << el.first << " " << el.second << std::endl;
-        }
+    // std::vector<TNodeID> exppath;
+    // std::vector<TNodeID> tempvect;
+    // std::vector<std::vector<std::string>> tvectintersect;
+    // std::string BusName;
+    // TNodeID start;
+    // TNodeID next;
 
-        return fastest;
+    // start = route[i];
+    // // std::cout << "start: " << start << std::endl;
+    // if (i < route.size() - 1)
+    // {
+    //     next = route[i + 1];
+    //     // std::cout << "next: " << next << std::endl;
+    // }
+
+    // if (MStopSteps.end() != MStopSteps.find(std::make_tuple(start, next)))
+    // {
+    //     auto v1routes = MStopSteps[(std::make_tuple(start, next))].RouteNames;
+    //     auto v1path = MStopSteps[(std::make_tuple(start, next))].path;
+
+    //     ++i;
+    //     start = route[i];
+    //     next = route[i + 1];
+
+    //     if (MStopSteps.end() != MStopSteps.find(std::make_tuple(start, next))) // it is a bus stop
+    //     {
+    //         auto v2routes = MStopSteps[(std::make_tuple(start, next))].RouteNames;
+    //         auto v2path = MStopSteps[(std::make_tuple(start, next))].path;
+    //         auto intersect = intersection(v1routes, v2routes);
+
+    //         if (!intersect.empty())
+    //         {
+    //             while (!intersect.empty()) // two buses coincide
+    //             {
+    //                 tvectintersect.push_back(intersect);
+    //                 auto prev = route[i - 1];
+    //                 tempvect.push_back(prev);
+    //                 tempvect.push_back(start);
+    //                 tempvect.push_back(next);
+
+    //                 ++i;
+    //                 start = route[i];
+    //                 next = route[i + 1];
+    //                 v2routes = MStopSteps[(std::make_tuple(start, next))].RouteNames;
+    //                 intersect = intersection(intersect, v2routes);
+    //             }
+
+    //             BusName = "Bus " + tvectintersect.back()[0];
+    //             auto vunique = unique_vector(tempvect);
+    //             for (int k = 0; k < vunique.size() - 1; k++)
+    //             {
+    //                 auto inside_path = MStopSteps[(std::make_tuple(vunique[k], vunique[k + 1]))].path;
+    //                 print_vector(inside_path);
+
+    //                 for (int t = 1; t < inside_path.size(); t++)
+    //                 {
+    //                     path.push_back(std::make_pair(BusName, inside_path[t]));
+    //                 }
+    //             }
+    //         }
+    //         else // intersect is empty: two different buses!
+    //         {
+    //             BusName = "Bus " + v1routes[0]; // asumming they are sorted
+    //             for (int j = 0; j < v1path.size(); j++)
+    //             {
+    //                 path.push_back(std::make_pair(BusName, v1path[j]));
+    //             }
+
+    //             BusName += "Bus " + v2routes[0];
+    //             for (int j = 0; j < v2path.size(); j++)
+    //             {
+    //                 path.push_back(std::make_pair(BusName, v2path[j]));
+    //             }
+    //         }
+    //     }
+    //     else // it is not a bus stop
+    //     {
+    //         std::sort(v1routes.begin(), v1routes.end());
+    //         auto name = "Bus " + v1routes[0];
+    //         auto inside_path = MStopSteps[(std::make_tuple(start, next))].path;
+    //         for (int j = 1; j < inside_path.size(); j++)
+    //         {
+    //             path.push_back(std::make_pair(name, inside_path[j]));
+    //         }
+    //     }
+    // }
+    // else
+    // {
+    //     if (i == route.size() - 1) // if we are at the end push the START
+    //     {
+    //         path.push_back(std::make_pair("Walk", start));
+    //     }
+    //     else
+    //     {
+    //         path.push_back(std::make_pair("Walk", next));
+    //     }
+    // }
+
+
+
+        // for (auto el : path)
+        // {
+        //     std::cout << el.first << " " << el.second << std::endl;
+        // }
+
+  
 }
+
 
 std::string direction(double degrees)
 {
-    if (degrees >= -22.5 && degrees < 27.5)
+    if (degrees >= -22.5 && degrees < 22.5)
     {
         return "N";
     }
-    else if (degrees >= 27.5 && degrees < 67.5)
+    else if (degrees >= 22.5 && degrees < 67.5)
     {
         return "NE";
     }
@@ -468,7 +481,7 @@ std::string direction(double degrees)
     }
     else if (degrees >= 112.5 && degrees < 157.5)
     {
-        return "SE";
+        return  "SE";
     }
     else if (degrees >= 157.5 && degrees < -157.5)
     {
@@ -476,7 +489,7 @@ std::string direction(double degrees)
     }
     else if (degrees >= -157.5 && degrees < -112.5)
     {
-        return "SW";
+        return  "SW";
     }
     else if (degrees >= -112.5 && degrees < -67.5)
     {
@@ -484,112 +497,140 @@ std::string direction(double degrees)
     }
     else if (degrees >= -67.5 && degrees < -22.5)
     {
-        return "NW";
+        return  "NW";
     }
     else
+    {
+        return "Strange!";
+    }
+}
+
+std::string degreeslat(double degrees)
+{
+    if(degrees >= 0 )
+    {
+        return "N";
+    }
+    else if (degrees < 0)
     {
         return "S";
     }
 }
 
+std::string degreeslon(double degrees)
+{
+    if (degrees >= 0)
+    {
+        return "E";
+    }
+    else if (degrees < 0)
+    {
+        return "W";
+    }
+}
+
 std::string deg_to_DMS(double degrees)
 {
-    std::string ddeg = std::to_string(degrees);
-    std::vector<std::string> temp = StringUtils::Split(".", ddeg);
-    std::string deg = temp[0] + 'd';
-    std::cout << deg << std::endl;
-    std::string min = std::to_string(std::stoul(temp[1])*60.0) + "\'";
-    std::cout << min << std::endl;
-    temp = StringUtils::Split(".", min);
-    std::string sec = std::to_string(std::stoul(temp[1])*60.0) + "\"";
-    std::cout << sec << std::endl;
-    return deg + min + sec;
+    degrees = abs(degrees);
+    int deg = int(degrees);
+    int minutes = int((degrees - deg) * 60);
+    double seconds = (degrees - deg - (minutes/60.0)) * 3600;
+    
+    std::string sdeg = std::to_string(deg) + "d ";
+    std::string smin = std::to_string(minutes) + "\' ";
 
+    std::stringstream PrecisionSeconds;
+    PrecisionSeconds << std::setprecision(4) << seconds << std::endl;
+    std::string sseconds = PrecisionSeconds.str();
+    sseconds = sseconds.erase(sseconds.length() - 1) + "\"";
+
+    return sdeg + smin + sseconds;
 }
 
 bool CMapRouter::GetPathDescription(const std::vector< TPathStep > &path, std::vector< std::string > &desc) const
 {
-    TNodeID start = path[0].second;
+    TNodeID start = path[0].second;
     TNodeIndex start_index = MNodeIds.at(start);
     Node start_node = VNodes[start_index];
 
-    std::string dirA = direction(start_node.location.first);
-    std::string dirB = direction(start_node.location.second);
-    std::string locA = deg_to_DMS(start_node.location.first);
-    std::string locB = deg_to_DMS(start_node.location.second);
+    std::string dirA = degreeslat(start_node.location.first);
+    std::string dirB = degreeslon(start_node.location.second);
+    std::string locA = deg_to_DMS(start_node.location.first);
+    std::string locB = deg_to_DMS(start_node.location.second);
 
-    std::string sstart = "Start at " + locA + " " + dirA + ", " + locB + " " + dirB;
-    desc.push_back(sstart);
-
+    std::string sstart = "Start at " + locA + " " + dirA + ", " + locB + " " + dirB;
+    desc.push_back(sstart);
     std::string nextbus;
 
-    for (int i = 1; i < path.size() -1 ; i++) 
-    {
-        TNodeID cur = path[i].second;
-        TNodeIndex cur_index = MNodeIds.at(cur);
-        Node cur_node = VNodes[cur_index];
-        TNodeID next = path[i + 1].second;
-        TNodeIndex next_index = MNodeIds.at(next);
-        Node next_node = VNodes[next_index];
+    TNodeID prev, cur, next;
+    TNodeIndex prev_index, cur_index, next_index;
+    Node prev_node, cur_node, next_node;
 
-        double bearing = CalculateBearing(cur_node.location.first, cur_node.location.second,
-                                        next_node.location.first, next_node.location.second);
+    for (int i = 1; i < path.size(); i++) 
+    {
 
-        std::string curdir = direction(bearing); 
+        prev = path[i - 1].second;
+        prev_index = MNodeIds.at(prev);
+        prev_node = VNodes[prev_index];
 
-        if(path[i].first == "Walk")
-        {
-            std::string tempdirA = direction(next_node.location.first);
-            std::string tempdirB = direction(next_node.location.second);
-            std::string templocA = deg_to_DMS(next_node.location.first);
-            std::string templocB = deg_to_DMS(next_node.location.second);
-            std::string tempdesc = "Walk " + curdir + " to "  + templocA + " " + tempdirA + ", " + templocB + " " + tempdirB;
-            desc.push_back(tempdesc);
-        }
-        else
-        {
-            auto curinfo = StringUtils::Split(" ", path[i].first);
-            auto curbus = curinfo[1];
+        cur = path[i].second;
+        cur_index = MNodeIds.at(cur);
+        cur_node = VNodes[cur_index];
 
-            if(path[i+1].first == "Walk")
+        if(path[i].first == "Walk")
+        {
+            std::string tempdirA = degreeslat(cur_node.location.first);
+            std::string tempdirB = degreeslon(cur_node.location.second);
+            std::string templocA = deg_to_DMS(cur_node.location.first);
+            std::string templocB = deg_to_DMS(cur_node.location.second);
+
+            double bearing = CalculateBearing(prev_node.location.first, prev_node.location.second, cur_node.location.first, cur_node.location.second);
+            std::string curdir = direction(bearing); 
+            std::string tempdesc = "Walk " + curdir + " to " + templocA + " " + tempdirA + ", " + templocB + " " + tempdirB;
+            desc.push_back(tempdesc);
+        }
+        else
+        {
+        auto curinfo = StringUtils::Split(path[i].first, " ");
+        auto curbus = curinfo[1];
+
+            if (path[i + 1].first == "Walk")
             {
-                std::string tempdesc = "Take" + path[i].first + "and get off at" + std::to_string(MTNodeStopIds[next_node.NodeID]);
-                desc.push_back(tempdesc);
-            }
-            else
+                std::string tempdesc = "Take " + path[i].first + " and get off at stop " + std::to_string(MTNodeStopIds.at(cur));
+                desc.push_back(tempdesc);
+            }
+
+            else
             {
-                nextbus = path[i+1].first.substr(4,5);
-                if(curbus == nextbus)
+                nextbus = path[i+1].first.substr(4,1);
+                if(curbus == nextbus)
+                {               
+                    ++i;
+                }
+                else
                 {
-                    i++;
-                }
-                else
-                {
-                    std::string tempdesc = "Take" + path[i].first + "and get off at" + std::to_string(MTNodeStopIds[next_node.NodeID]);
-                    desc.push_back(tempdesc);
-                }
-            }
-        }
-    }
+                    std::string tempdesc = "Take" + path[i].first + "and get off at stop " + std::to_string(MTNodeStopIds.at(prev));
+                    desc.push_back(tempdesc);
+                }
+            }
+      }
+}
 
     auto end = path[path.size()-1].second;
-    auto end_index = MNodeIds.at(end);
-    auto end_node = VNodes[end_index];
-
-    auto enddirA = direction(end_node.location.first);
-    auto enddirB = direction(end_node.location.second);
-    auto endlocA = deg_to_DMS(end_node.location.first);
-    auto endlocB = deg_to_DMS(end_node.location.second);
-
-    std::string endd = "End at " + endlocA + " " + enddirA + ", " + endlocB + " " + enddirB;
-    desc.push_back(endd);
+    auto end_index = MNodeIds.at(end);
+    auto end_node = VNodes[end_index];  
+    auto enddirA = degreeslat(end_node.location.first);
+    auto enddirB = degreeslon(end_node.location.second);
+    auto endlocA = deg_to_DMS(end_node.location.first);
+    auto endlocB = deg_to_DMS(end_node.location.second);    
+    std::string endd = "End at " + endlocA + " " + enddirA + ", " + endlocB + " " + enddirB;
+    desc.push_back(endd);
 
     return true;
 }
 
 double CMapRouter::dijkstras(TNodeID src, TNodeID dest, std::vector<TNodeID> & path, int method)
     {
-        //std::cout << __LINE__ << std::endl;
         const int infinity = std::numeric_limits<int>::max();
         TNodeIndex src_index = MNodeIds[src];
         TNodeIndex dest_index = MNodeIds[dest];
@@ -632,7 +673,7 @@ double CMapRouter::dijkstras(TNodeID src, TNodeID dest, std::vector<TNodeID> & p
 
         if (dist[dest_index] == infinity)
         {
-            std::cout << "bad" << std::endl;
+            std::cout << "We have a problem!" << std::endl;
             exit(0);
         }
 
@@ -649,6 +690,19 @@ double CMapRouter::dijkstras(TNodeID src, TNodeID dest, std::vector<TNodeID> & p
         return dist[dest_index];
     }
 
+
+
+std::vector<CMapRouter::TPathStep> CMapRouter::ShortestPathToTPathStep(std::vector <CMapRouter::TNodeID> vNodeID)
+{
+    std::vector<CMapRouter::TPathStep> result;
+    for (int i = 0; i < vNodeID.size(); i++)
+    {
+        result.push_back(std::make_pair("Walk", vNodeID[i]));
+    }
+
+    return result;
+    
+}
     void CMapRouter::print_vector(std::vector<TStopID> v)
     {
         std::string ret;
