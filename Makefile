@@ -44,13 +44,13 @@ $(OBJDIR)/StringUtils.o: $(SRCDIR)/StringUtils.cpp $(INCLUDEDIR)/StringUtils.h
 
 # libcsv
 $(LIBCSVDIR)/Makefile:
-	cd $(LIBCSVDIR); ./configure --prefix= $(CURDIR); cd ..
+	cd $(LIBCSVDIR); ./configure--prefix=$(CURDIR); cd ..
 
 $(LIBCSVDIR)/libcsv.la: $(LIBCSVDIR)/Makefile
 	cd $(LIBCSVDIR); make; cd ..
 
-$(LIBDIR)/ $(LIBCSVNAME): $(LIBCSVDIR)/libcsv.la
-	cd $(LIBCSVDIR); make install; cd ..ø
+$(LIBDIR)/$(LIBCSVNAME): $(LIBCSVDIR)/libcsv.la
+	cd $(LIBCSVDIR); make install; cd ..
 
 
 # tests
